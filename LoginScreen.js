@@ -22,8 +22,8 @@ const handleSocialLogin = (platform) => {
 }
 
   return (
-    <View>
-      <Text>LoginScreen</Text>
+    <View style={styles.container}>
+        <Text style={styles.title}>Welcome Back</Text>
     </View>
   )
 }

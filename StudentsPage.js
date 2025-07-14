@@ -6,6 +6,8 @@ import { supabase } from './supabase';
 export default function StudentsPage({ onBack }) {
   const [searchText, setSearchText] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const [detailsModalVisible, setDetailsModalVisible] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
   const [students, setStudents] = useState([]);
   const [studentData, setStudentData] = useState({
     name: '',
@@ -16,6 +18,7 @@ export default function StudentsPage({ onBack }) {
     email: '',
     password: '',
     gender: 'male',
+    studentId: '',
     image: null
   });
 
@@ -32,11 +35,10 @@ export default function StudentsPage({ onBack }) {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
-        base64: false,
       });
 
       console.log('Image picker result:', result);
@@ -91,6 +93,7 @@ export default function StudentsPage({ onBack }) {
           email: '',
           password: '',
           gender: 'male',
+          studentId: '',
           image: null
         });
       }
@@ -99,8 +102,13 @@ export default function StudentsPage({ onBack }) {
     }
   };
 
+  const handleStudentPress = (student) => {
+    setSelectedStudent(student);
+    setDetailsModalVisible(true);
+  };
+
   const renderStudent = ({ item }) => (
-    <View style={styles.studentCard}>
+    <TouchableOpacity style={styles.studentCard} onPress={() => handleStudentPress(item)}>
       <View style={styles.studentImageContainer}>
         {item.image ? (
           <Image source={{ uri: item.image }} style={styles.studentImage} />
@@ -115,7 +123,7 @@ export default function StudentsPage({ onBack }) {
         <Text style={styles.studentDetails}>Class: {item.class}</Text>
         <Text style={styles.studentDetails}>Age: {item.age}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -207,6 +215,13 @@ export default function StudentsPage({ onBack }) {
                 onChangeText={(text) => setStudentData({...studentData, class: text})}
               />
               
+              <TextInput
+                style={styles.input}
+                placeholder="Student ID"
+                value={studentData.studentId}
+                onChangeText={(text) => setStudentData({...studentData, studentId: text})}
+              />
+              
               <View style={styles.genderContainer}>
                 <Text style={styles.genderLabel}>Gender:</Text>
                 <TouchableOpacity 
@@ -256,6 +271,60 @@ export default function StudentsPage({ onBack }) {
                 <Text style={styles.saveButtonText}>Save</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={detailsModalVisible}
+        onRequestClose={() => setDetailsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Student Details</Text>
+            
+            {selectedStudent && (
+              <ScrollView style={styles.detailsContainer}>
+                <View style={styles.detailImageContainer}>
+                  {selectedStudent.image ? (
+                    <Image source={{ uri: selectedStudent.image }} style={styles.detailImage} />
+                  ) : (
+                    <View style={styles.detailDefaultAvatar}>
+                      <Text style={styles.detailAvatarText}>{selectedStudent.name.charAt(0).toUpperCase()}</Text>
+                    </View>
+                  )}
+                </View>
+                
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Name:</Text>
+                  <Text style={styles.detailValue}>{selectedStudent.name}</Text>
+                </View>
+                
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Student ID:</Text>
+                  <Text style={styles.detailValue}>{selectedStudent.studentId || 'N/A'}</Text>
+                </View>
+                
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Class:</Text>
+                  <Text style={styles.detailValue}>{selectedStudent.class}</Text>
+                </View>
+                
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Age:</Text>
+                  <Text style={styles.detailValue}>{selectedStudent.age}</Text>
+                </View>
+              </ScrollView>
+            )}
+            
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.saveButton]} 
+              onPress={() => setDetailsModalVisible(false)}
+            >
+              <Text style={styles.saveButtonText}>Close</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -475,5 +544,46 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 2,
+  },
+  detailsContainer: {
+    maxHeight: 400,
+  },
+  detailImageContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  detailImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+  },
+  detailDefaultAvatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#4a90e2',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detailAvatarText: {
+    color: '#fff',
+    fontSize: 48,
+    fontWeight: '600',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  detailLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    width: 100,
+  },
+  detailValue: {
+    fontSize: 16,
+    color: '#666',
+    flex: 1,
   },
 });

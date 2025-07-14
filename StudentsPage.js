@@ -22,6 +22,26 @@ export default function StudentsPage({ onBack }) {
     image: null
   });
 
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  const fetchStudents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('students')
+        .select('*');
+      
+      if (error) {
+        console.error('Error fetching students:', error);
+      } else {
+        setStudents(data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching students:', error);
+    }
+  };
+
   const handleAddStudent = () => {
     setModalVisible(true);
   };
@@ -57,31 +77,43 @@ export default function StudentsPage({ onBack }) {
 
   const handleSaveStudent = async () => {
     try {
-      const { error } = await supabase.auth.signUp({
+      // Create auth user
+      const { error: authError } = await supabase.auth.signUp({
         email: studentData.email,
         password: studentData.password,
         options: {
           data: {
-            name: studentData.name,
-            age: studentData.age,
-            dob: studentData.dob,
-            parentsName: studentData.parentsName,
-            class: studentData.class,
-            gender: studentData.gender,
-            image: studentData.image,
             role: 'student'
           }
         }
       });
       
+      if (authError) {
+        Alert.alert('Error', authError.message);
+        return;
+      }
+
+      // Save student to database
+      const { data, error } = await supabase
+        .from('students')
+        .insert([
+          {
+            name: studentData.name,
+            age: parseInt(studentData.age),
+            dob: studentData.dob,
+            parents_name: studentData.parentsName,
+            class: studentData.class,
+            email: studentData.email,
+            gender: studentData.gender,
+            student_id: studentData.studentId,
+            image: studentData.image
+          }
+        ])
+        .select();
+      
       if (error) {
         Alert.alert('Error', error.message);
       } else {
-        const newStudent = {
-          id: Date.now().toString(),
-          ...studentData
-        };
-        setStudents([...students, newStudent]);
         Alert.alert('Success', 'Student added successfully!');
         setModalVisible(false);
         setStudentData({
@@ -96,6 +128,7 @@ export default function StudentsPage({ onBack }) {
           studentId: '',
           image: null
         });
+        fetchStudents(); // Refresh the list
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to add student');
@@ -304,7 +337,7 @@ export default function StudentsPage({ onBack }) {
                 
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Student ID:</Text>
-                  <Text style={styles.detailValue}>{selectedStudent.studentId || 'N/A'}</Text>
+                  <Text style={styles.detailValue}>{selectedStudent.student_id || selectedStudent.studentId || 'N/A'}</Text>
                 </View>
                 
                 <View style={styles.detailRow}>

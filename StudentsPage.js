@@ -15,6 +15,7 @@ export default function StudentsPage({ onBack }) {
     class: '',
     email: '',
     password: '',
+    gender: 'male',
     image: null
   });
 
@@ -23,15 +24,32 @@ export default function StudentsPage({ onBack }) {
   };
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow access to your photos');
+        return;
+      }
 
-    if (!result.canceled) {
-      setStudentData({...studentData, image: result.assets[0].uri});
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        base64: false,
+      });
+
+      console.log('Image picker result:', result);
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        console.log('Selected image URI:', result.assets[0].uri);
+        setStudentData({...studentData, image: result.assets[0].uri});
+      } else {
+        console.log('Image selection was canceled or failed');
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
     }
   };
 
@@ -47,6 +65,7 @@ export default function StudentsPage({ onBack }) {
             dob: studentData.dob,
             parentsName: studentData.parentsName,
             class: studentData.class,
+            gender: studentData.gender,
             image: studentData.image,
             role: 'student'
           }
@@ -71,6 +90,7 @@ export default function StudentsPage({ onBack }) {
           class: '',
           email: '',
           password: '',
+          gender: 'male',
           image: null
         });
       }
@@ -141,9 +161,13 @@ export default function StudentsPage({ onBack }) {
             <ScrollView style={styles.formContainer}>
               <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
                 {studentData.image ? (
-                  <Image source={{ uri: studentData.image }} style={styles.selectedImage} />
+                  <Image 
+                    source={{ uri: studentData.image }} 
+                    style={styles.selectedImage}
+                    onError={(error) => console.log('Image load error:', error)}
+                  />
                 ) : (
-                  <Text style={styles.imagePickerText}>Add Photo</Text>
+                  <Text style={styles.imagePickerText}>📷 Add Photo</Text>
                 )}
               </TouchableOpacity>
               
@@ -182,6 +206,22 @@ export default function StudentsPage({ onBack }) {
                 value={studentData.class}
                 onChangeText={(text) => setStudentData({...studentData, class: text})}
               />
+              
+              <View style={styles.genderContainer}>
+                <Text style={styles.genderLabel}>Gender:</Text>
+                <TouchableOpacity 
+                  style={[styles.genderButton, studentData.gender === 'male' && styles.selectedGender]}
+                  onPress={() => setStudentData({...studentData, gender: 'male'})}
+                >
+                  <Text style={[styles.genderText, studentData.gender === 'male' && styles.selectedGenderText]}>Male</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.genderButton, studentData.gender === 'female' && styles.selectedGender]}
+                  onPress={() => setStudentData({...studentData, gender: 'female'})}
+                >
+                  <Text style={[styles.genderText, studentData.gender === 'female' && styles.selectedGenderText]}>Female</Text>
+                </TouchableOpacity>
+              </View>
               
               <TextInput
                 style={styles.input}
@@ -392,6 +432,35 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 24,
     fontWeight: '600',
+  },
+  genderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  genderLabel: {
+    fontSize: 16,
+    color: '#333',
+    marginRight: 15,
+  },
+  genderButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    marginRight: 10,
+  },
+  selectedGender: {
+    backgroundColor: '#4a90e2',
+    borderColor: '#4a90e2',
+  },
+  genderText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  selectedGenderText: {
+    color: '#fff',
   },
   studentInfo: {
     flex: 1,

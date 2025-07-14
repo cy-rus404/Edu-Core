@@ -7,7 +7,6 @@ import {
   View,
 } from "react-native";
 import React, { useState } from "react";
-import { Picker } from '@react-native-picker/picker';
 import { supabase } from './supabase';
 
 export default function LoginScreen({ onLogin }) {
@@ -62,16 +61,26 @@ export default function LoginScreen({ onLogin }) {
         value={password}
       />
 
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={role}
-          style={styles.picker}
-          onValueChange={setRole}
+      <View style={styles.roleContainer}>
+        <Text style={styles.roleLabel}>Role:</Text>
+        <TouchableOpacity 
+          style={[styles.roleButton, role === 'student' && styles.selectedRole]}
+          onPress={() => setRole('student')}
         >
-          <Picker.Item label="Student" value="student" />
-          <Picker.Item label="Teacher" value="teacher" />
-          <Picker.Item label="Admin" value="admin" />
-        </Picker>
+          <Text style={[styles.roleText, role === 'student' && styles.selectedRoleText]}>Student</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.roleButton, role === 'teacher' && styles.selectedRole]}
+          onPress={() => setRole('teacher')}
+        >
+          <Text style={[styles.roleText, role === 'teacher' && styles.selectedRoleText]}>Teacher</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.roleButton, role === 'admin' && styles.selectedRole]}
+          onPress={() => setRole('admin')}
+        >
+          <Text style={[styles.roleText, role === 'admin' && styles.selectedRoleText]}>Admin</Text>
+        </TouchableOpacity>
       </View>
 
       <TouchableOpacity 
@@ -140,17 +149,34 @@ const styles = StyleSheet.create({
         backgroundColor:'#ccc'
     },
     
-    pickerContainer:{
-        width: 300,
-        borderWidth:1,
-        borderColor: '#ccc',
-        borderRadius:12,
-        marginBottom:20,
-        backgroundColor:'#fff'
+    roleContainer: {
+        alignItems: 'center',
+        marginBottom: 20,
     },
-    
-    picker:{
-        height:56,
-        width:'100%'
+    roleLabel: {
+        fontSize: 16,
+        color: '#333',
+        marginBottom: 10,
+    },
+    roleButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 20,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#ccc',
+        marginBottom: 8,
+        width: 120,
+        alignItems: 'center',
+    },
+    selectedRole: {
+        backgroundColor: '#4a90e2',
+        borderColor: '#4a90e2',
+    },
+    roleText: {
+        fontSize: 14,
+        color: '#666',
+    },
+    selectedRoleText: {
+        color: '#fff',
     }
 });

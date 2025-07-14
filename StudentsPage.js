@@ -372,11 +372,26 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     alignItems: 'center',
   },
+  studentImageContainer: {
+    marginRight: 15,
+  },
   studentImage: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    marginRight: 15,
+  },
+  defaultAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#4a90e2',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '600',
   },
   studentInfo: {
     flex: 1,

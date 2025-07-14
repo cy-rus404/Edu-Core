@@ -380,8 +380,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#4a90e2',
     position: 'absolute',
-    top: 60,
-    left: 24,
+    top: 5,
+    left: -185,
     zIndex: 1,
   },
   title: {
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
   addButton: {
     position: 'relative',
     bottom: 30,
-    right: 30,
+    right: -280,
     width: 60,
     height: 60,
     backgroundColor: '#4a90e2',

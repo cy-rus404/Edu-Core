@@ -7,16 +7,26 @@ import {
   View,
 } from "react-native";
 import React, { useState } from "react";
+import { Picker } from '@react-native-picker/picker';
 import { supabase } from './supabase';
 
-export default function LoginScreen() {
+export default function LoginScreen({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("student");
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    
+    // Check for admin credentials
+    if (email === "admin@educore.com" && password === "admin123" && role === "admin") {
+      onLogin("admin", "admin");
+      setLoading(false);
+      return;
+    }
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -24,8 +34,10 @@ export default function LoginScreen() {
     if (error) {
       Alert.alert("Error", error.message);
     } else {
-      Alert.alert("Success", "Logged in successfully!");
+      const username = email.split('@')[0];
+      onLogin(username, role);
     }
+    
     setLoading(false);
   };
 
@@ -50,6 +62,18 @@ export default function LoginScreen() {
         value={password}
       />
 
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={role}
+          style={styles.picker}
+          onValueChange={setRole}
+        >
+          <Picker.Item label="Student" value="student" />
+          <Picker.Item label="Teacher" value="teacher" />
+          <Picker.Item label="Admin" value="admin" />
+        </Picker>
+      </View>
+
       <TouchableOpacity 
         style={[styles.button, loading && styles.buttonDisabled]} 
         onPress={handleLogin}
@@ -67,40 +91,66 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
     container:{
-        padding:24,
+        flex: 1,
         justifyContent:'center',
+        alignItems:'center',
+        paddingHorizontal:24,
         backgroundColor:'#fff'
     },
 
     title:{
-        fontSize:20,
-        marginBottom:30,
-        fontWeight:600,
+        fontSize:28,
+        marginBottom:40,
+        fontWeight:'600',
         textAlign:'center',
-        marginTop:200
+        color:'#333'
     },
 
     input:{
+        width: 300,
+        // maxWidth:400,
         borderWidth:1,
         borderColor: '#ccc',
-        padding:14,
-        borderRadius:8,
-        marginBottom:16
+        paddingVertical:22,
+        paddingHorizontal:20,
+        borderRadius:12,
+        marginBottom:20,
+        fontSize:18,
+        minHeight:56
     },
     button:{
+        width: 250,
+        // maxWidth:200,
         backgroundColor:'#4a90e2',
-        padding:15,
-        borderRadius:8,
+        padding:18,
+        borderRadius:12,
         alignItems:'center',
-        marginTop:10
+        marginTop:130,
+        zIndex: 1,
+        elevation: 1
     }, 
     
     buttonText:{
         color:'#fff',
-        fontWeight:900
+        fontWeight:'700',
+        fontSize:18
     },
     
     buttonDisabled:{
         backgroundColor:'#ccc'
+    },
+    
+    pickerContainer:{
+        width: 300,
+        borderWidth:1,
+        borderColor: '#ccc',
+        borderRadius:12,
+        marginBottom:20,
+        backgroundColor:'#fff'
+    },
+    
+    picker:{
+        height:56,
+        width:'100%'
     }
 });

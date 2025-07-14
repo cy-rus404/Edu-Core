@@ -1,7 +1,5 @@
 import {
   Alert,
-  Image,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -9,23 +7,26 @@ import {
   View,
 } from "react-native";
 import React, { useState } from "react";
+import { supabase } from './supabase';
 
 export default function LoginScreen() {
-  const handleLogin = () => {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-    const handleLogin = () => {
-      if (email === "sduisaac@gmail.com" && password === "1234") {
-        Alert.alert("Success", "Logged In");
-      } else {
-        Alert.alert("Error", "Invalid Credentials");
-      }
-    };
-  };
-
-  const handleSocialLogin = (platform) => {
-    Alert.alert("Social Login", `Logging in with ${platform}`);
+  const handleLogin = async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (error) {
+      Alert.alert("Error", error.message);
+    } else {
+      Alert.alert("Success", "Logged in successfully!");
+    }
+    setLoading(false);
   };
 
   return (
@@ -37,19 +38,27 @@ export default function LoginScreen() {
         placeholder="Email"
         keyboardType="email-address"
         autoCapitalize="none"
-        onChangeText={"setEmail"}
-        value={"email"}
+        onChangeText={setEmail}
+        value={email}
       />
 
-      <TextInput style={styles.input}
-      placeholder="password"
-      secureTextEntry
-      onChangeText={"setPassword"}
-      value={"password"}/>
+      <TextInput 
+        style={styles.input}
+        placeholder="Password"
+        secureTextEntry
+        onChangeText={setPassword}
+        value={password}
+      />
 
-    <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Log In</Text>
-    </TouchableOpacity>
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.buttonDisabled]} 
+        onPress={handleLogin}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>
+          {loading ? "Logging in..." : "Log In"}
+        </Text>
+      </TouchableOpacity>
    
    
     </View>
@@ -89,5 +98,9 @@ const styles = StyleSheet.create({
     buttonText:{
         color:'#fff',
         fontWeight:900
+    },
+    
+    buttonDisabled:{
+        backgroundColor:'#ccc'
     }
 });

@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   addButton: {
-    position: 'absolute',
+    position: 'relative',
     bottom: 30,
     right: 30,
     width: 60,

@@ -18,7 +18,7 @@ ALTER TABLE students ENABLE ROW LEVEL SECURITY;
 
 -- Create policy to allow all operations for authenticated users
 CREATE POLICY "Allow all operations for authenticated users" ON students
-  FOR ALL USING (auth.role() = 'authenticated');
+  FOR ALL USING (auth.uid() IS NOT NULL);
 
 -- Grant permissions
 GRANT ALL ON students TO authenticated;

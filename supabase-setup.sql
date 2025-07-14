@@ -1,5 +1,8 @@
+-- Drop table if exists
+DROP TABLE IF EXISTS students;
+
 -- Create students table
-CREATE TABLE IF NOT EXISTS students (
+CREATE TABLE students (
   id BIGSERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   age INTEGER,
@@ -16,10 +19,12 @@ CREATE TABLE IF NOT EXISTS students (
 -- Enable Row Level Security
 ALTER TABLE students ENABLE ROW LEVEL SECURITY;
 
--- Create policy to allow all operations for authenticated users
-CREATE POLICY "Allow all operations for authenticated users" ON students
-  FOR ALL USING (auth.uid() IS NOT NULL);
+-- Create policy to allow all operations
+CREATE POLICY "Allow all operations" ON students
+  FOR ALL USING (true);
 
 -- Grant permissions
+GRANT ALL ON students TO anon;
 GRANT ALL ON students TO authenticated;
+GRANT USAGE ON SEQUENCE students_id_seq TO anon;
 GRANT USAGE ON SEQUENCE students_id_seq TO authenticated;

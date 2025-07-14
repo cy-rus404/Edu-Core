@@ -18,9 +18,13 @@ export default function LoginScreen({ onLogin }) {
   const handleLogin = async () => {
     setLoading(true);
     
-    // Check for admin credentials
-    if (email === "admin@educore.com" && password === "admin123" && role === "admin") {
-      onLogin("admin", "admin");
+    // Only allow specific admin credentials
+    if (role === "admin") {
+      if (email === "admin@educore.com" && password === "admin123") {
+        onLogin("admin", "admin");
+      } else {
+        Alert.alert("Error", "Invalid admin credentials");
+      }
       setLoading(false);
       return;
     }

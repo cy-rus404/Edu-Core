@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import StudentsPage from './StudentsPage';
 
 export default function AdminHomePage({ onLogout }) {
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const { width } = Dimensions.get('window');
 
   const handleNavigation = (page) => {
     if (page === 'Students') {

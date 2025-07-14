@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View } from 'react-native';
-import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Animated } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
 import LoginScreen from './LoginScreen';
 import SplashScreen from './SplashScreen';
 import HomePage from './HomePage';
@@ -11,6 +11,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [userRole, setUserRole] = useState('');
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -21,15 +22,37 @@ export default function App() {
   }, []);
 
   const handleLogin = (user, role) => {
-    setUsername(user);
-    setUserRole(role);
-    setIsLoggedIn(true);
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setUsername(user);
+      setUserRole(role);
+      setIsLoggedIn(true);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    });
   };
 
   const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUsername('');
-    setUserRole('');
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setIsLoggedIn(false);
+      setUsername('');
+      setUserRole('');
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    });
   };
 
   const renderScreen = () => {
@@ -45,7 +68,9 @@ export default function App() {
 
   return (
     <View style={[styles.container, showSplash && styles.splashContainer]}>
-      {renderScreen()}
+      <Animated.View style={[{ flex: 1 }, { opacity: fadeAnim }]}>
+        {renderScreen()}
+      </Animated.View>
       <StatusBar style="auto" />
     </View>
   );

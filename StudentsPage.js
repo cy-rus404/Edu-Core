@@ -157,6 +157,36 @@ export default function StudentsPage({ onBack }) {
     setDetailsModalVisible(true);
   };
 
+  const handleDeleteStudent = async () => {
+    try {
+      const { error } = await supabase
+        .from('students')
+        .delete()
+        .eq('id', selectedStudent.id);
+      
+      if (error) {
+        Alert.alert('Error', error.message);
+      } else {
+        Alert.alert('Success', 'Student deleted successfully');
+        setDetailsModalVisible(false);
+        fetchStudents(); // Refresh the list
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete student');
+    }
+  };
+
+  const confirmDelete = () => {
+    Alert.alert(
+      'Confirm Delete',
+      `Are you sure you want to delete ${selectedStudent.name}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', onPress: handleDeleteStudent, style: 'destructive' }
+      ]
+    );
+  };
+
   const renderStudent = ({ item }) => (
     <TouchableOpacity style={styles.studentCard} onPress={() => handleStudentPress(item)}>
       <View style={styles.studentImageContainer}>
@@ -402,6 +432,13 @@ export default function StudentsPage({ onBack }) {
             
             <View style={styles.modalButtons}>
               <TouchableOpacity 
+                style={[styles.modalButton, styles.deleteButton]} 
+                onPress={confirmDelete}
+              >
+                <Text style={styles.deleteButtonText}>Delete</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
                 style={[styles.modalButton, styles.saveButton]} 
                 onPress={() => setDetailsModalVisible(false)}
               >
@@ -518,6 +555,15 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: '#4a90e2',
+  },
+  deleteButton: {
+    backgroundColor: '#ff4757',
+  },
+  deleteButtonText: {
+    color: '#fff',
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
   },
   cancelButtonText: {
     color: '#333',

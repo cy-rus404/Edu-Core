@@ -58,6 +58,10 @@ export default function AdminHomePage({ onLogout }) {
           <Text style={styles.boxText}>Announcements</Text>
         </TouchableOpacity>
         
+        <TouchableOpacity style={styles.box} onPress={() => handleNavigation('Reports')}>
+          <Text style={styles.boxText}>Reports</Text>
+        </TouchableOpacity>
+        
         <TouchableOpacity style={styles.box} onPress={() => handleNavigation('Settings')}>
           <Text style={styles.boxText}>Settings</Text>
         </TouchableOpacity>

@@ -77,6 +77,9 @@ export default function StudentsPage({ onBack }) {
 
   const handleSaveStudent = async () => {
     try {
+      // Generate auto ID starting from 1001
+      const autoId = 1001 + students.length;
+      
       // Create auth user
       const { error: authError } = await supabase.auth.signUp({
         email: studentData.email,
@@ -105,7 +108,7 @@ export default function StudentsPage({ onBack }) {
             class: studentData.class,
             email: studentData.email,
             gender: studentData.gender,
-            student_id: studentData.studentId,
+            student_id: autoId.toString(),
             image: studentData.image
           }
         ])
@@ -153,8 +156,8 @@ export default function StudentsPage({ onBack }) {
       </View>
       <View style={styles.studentInfo}>
         <Text style={styles.studentName}>{item.name}</Text>
+        <Text style={styles.studentDetails}>ID: {item.student_id}</Text>
         <Text style={styles.studentDetails}>Class: {item.class}</Text>
-        <Text style={styles.studentDetails}>Age: {item.age}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -248,12 +251,10 @@ export default function StudentsPage({ onBack }) {
                 onChangeText={(text) => setStudentData({...studentData, class: text})}
               />
               
-              <TextInput
-                style={styles.input}
-                placeholder="Student ID"
-                value={studentData.studentId}
-                onChangeText={(text) => setStudentData({...studentData, studentId: text})}
-              />
+              <View style={styles.autoIdContainer}>
+                <Text style={styles.autoIdLabel}>Student ID: {1001 + students.length}</Text>
+                <Text style={styles.autoIdNote}>(Auto-generated)</Text>
+              </View>
               
               <View style={styles.genderContainer}>
                 <Text style={styles.genderLabel}>Gender:</Text>
@@ -352,12 +353,14 @@ export default function StudentsPage({ onBack }) {
               </ScrollView>
             )}
             
-            <TouchableOpacity 
-              style={[styles.modalButton, styles.saveButton]} 
-              onPress={() => setDetailsModalVisible(false)}
-            >
-              <Text style={styles.saveButtonText}>Close</Text>
-            </TouchableOpacity>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.saveButton]} 
+                onPress={() => setDetailsModalVisible(false)}
+              >
+                <Text style={styles.saveButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -618,5 +621,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     flex: 1,
+  },
+  autoIdContainer: {
+    backgroundColor: '#f0f0f0',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  autoIdLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  autoIdNote: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 5,
   },
 });

@@ -13,11 +13,17 @@ export default function TeachersPage({ onBack }) {
     name: '',
     age: '',
     subject: '',
+    assignedClass: 'Creche',
     email: '',
     password: '',
     gender: 'male',
     image: null
   });
+
+  const classes = [
+    'Creche', 'Nursery', 'KG1', 'KG2', 'Class 1', 'Class 2', 'Class 3', 
+    'Class 4', 'Class 5', 'Class 6', 'JHS 1', 'JHS 2', 'JHS 3'
+  ];
 
   useEffect(() => {
     fetchTeachers();
@@ -94,6 +100,7 @@ export default function TeachersPage({ onBack }) {
             subject: teacherData.subject,
             email: teacherData.email,
             gender: teacherData.gender,
+            assigned_class: teacherData.assignedClass,
             teacher_id: autoId.toString(),
             image: teacherData.image
           }
@@ -109,6 +116,7 @@ export default function TeachersPage({ onBack }) {
           name: '',
           age: '',
           subject: '',
+          assignedClass: 'Creche',
           email: '',
           password: '',
           gender: 'male',
@@ -141,6 +149,7 @@ export default function TeachersPage({ onBack }) {
         <Text style={styles.teacherName}>{item.name}</Text>
         <Text style={styles.teacherDetails}>ID: {item.teacher_id}</Text>
         <Text style={styles.teacherDetails}>Subject: {item.subject}</Text>
+        <Text style={styles.teacherDetails}>Class: {item.assigned_class}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -218,6 +227,23 @@ export default function TeachersPage({ onBack }) {
                 value={teacherData.subject}
                 onChangeText={(text) => setTeacherData({...teacherData, subject: text})}
               />
+              
+              <View style={styles.classContainer}>
+                <Text style={styles.classLabel}>Assign Class:</Text>
+                <View style={styles.classGrid}>
+                  {classes.map((className) => (
+                    <TouchableOpacity
+                      key={className}
+                      style={[styles.classButton, teacherData.assignedClass === className && styles.selectedClass]}
+                      onPress={() => setTeacherData({...teacherData, assignedClass: className})}
+                    >
+                      <Text style={[styles.classText, teacherData.assignedClass === className && styles.selectedClassText]}>
+                        {className}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
               
               <View style={styles.autoIdContainer}>
                 <Text style={styles.autoIdLabel}>Teacher ID: {2001 + teachers.length}</Text>
@@ -312,6 +338,11 @@ export default function TeachersPage({ onBack }) {
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Subject:</Text>
                   <Text style={styles.detailValue}>{selectedTeacher.subject}</Text>
+                </View>
+                
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Assigned Class:</Text>
+                  <Text style={styles.detailValue}>{selectedTeacher.assigned_class}</Text>
                 </View>
                 
                 <View style={styles.detailRow}>
@@ -606,5 +637,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 5,
+  },
+  classContainer: {
+    marginBottom: 20,
+  },
+  classLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
+  classGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  classButton: {
+    width: '30%',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  selectedClass: {
+    backgroundColor: '#4a90e2',
+    borderColor: '#4a90e2',
+  },
+  classText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  selectedClassText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });

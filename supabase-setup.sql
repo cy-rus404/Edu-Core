@@ -42,9 +42,16 @@ CREATE TABLE IF NOT EXISTS teachers (
   email VARCHAR(255) UNIQUE,
   gender VARCHAR(10),
   teacher_id VARCHAR(100),
+  assigned_class VARCHAR(100),
   image TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Add assigned class column if it doesn't exist
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS assigned_class VARCHAR(100);
+
+-- Add assigned class column to teachers
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS assigned_class VARCHAR(100);
 
 -- Enable Row Level Security for teachers
 ALTER TABLE teachers ENABLE ROW LEVEL SECURITY;

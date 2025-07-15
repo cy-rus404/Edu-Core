@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { supabase } from './supabase';
+import AttendancePage from './AttendancePage';
 
 export default function TeacherHomePage({ username, onLogout }) {
   const [teacherData, setTeacherData] = useState(null);
+  const [currentPage, setCurrentPage] = useState('dashboard');
 
   useEffect(() => {
     fetchTeacherData();
@@ -31,8 +33,16 @@ export default function TeacherHomePage({ username, onLogout }) {
   };
 
   const handleNavigation = (page) => {
-    console.log(`Navigate to ${page}`);
+    setCurrentPage(page);
   };
+
+  const handleBack = () => {
+    setCurrentPage('dashboard');
+  };
+
+  if (currentPage === 'Attendance' && teacherData) {
+    return <AttendancePage onBack={handleBack} teacherClass={teacherData.assigned_class} />;
+  }
 
   return (
     <View style={styles.container}>

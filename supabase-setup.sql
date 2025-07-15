@@ -66,3 +66,28 @@ GRANT ALL ON teachers TO anon;
 GRANT ALL ON teachers TO authenticated;
 GRANT USAGE ON SEQUENCE teachers_id_seq TO anon;
 GRANT USAGE ON SEQUENCE teachers_id_seq TO authenticated;
+
+-- Create attendance table
+CREATE TABLE IF NOT EXISTS attendance (
+  id BIGSERIAL PRIMARY KEY,
+  student_id VARCHAR(100) NOT NULL,
+  student_name VARCHAR(255) NOT NULL,
+  class VARCHAR(100) NOT NULL,
+  date DATE NOT NULL,
+  status VARCHAR(20) NOT NULL, -- 'present', 'absent', 'late'
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable Row Level Security for attendance
+ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
+
+-- Create policy to allow all operations for attendance
+DROP POLICY IF EXISTS "Allow all operations" ON attendance;
+CREATE POLICY "Allow all operations" ON attendance
+  FOR ALL USING (true);
+
+-- Grant permissions for attendance
+GRANT ALL ON attendance TO anon;
+GRANT ALL ON attendance TO authenticated;
+GRANT USAGE ON SEQUENCE attendance_id_seq TO anon;
+GRANT USAGE ON SEQUENCE attendance_id_seq TO authenticated;

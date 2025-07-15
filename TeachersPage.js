@@ -3,46 +3,43 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, ScrollView,
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from './supabase';
 
-export default function StudentsPage({ onBack }) {
+export default function TeachersPage({ onBack }) {
   const [searchText, setSearchText] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [students, setStudents] = useState([]);
-  const [studentData, setStudentData] = useState({
+  const [selectedTeacher, setSelectedTeacher] = useState(null);
+  const [teachers, setTeachers] = useState([]);
+  const [teacherData, setTeacherData] = useState({
     name: '',
     age: '',
-    dob: '',
-    parentsName: '',
-    class: '',
+    subject: '',
     email: '',
     password: '',
     gender: 'male',
-    studentId: '',
     image: null
   });
 
   useEffect(() => {
-    fetchStudents();
+    fetchTeachers();
   }, []);
 
-  const fetchStudents = async () => {
+  const fetchTeachers = async () => {
     try {
       const { data, error } = await supabase
-        .from('students')
+        .from('teachers')
         .select('*');
       
       if (error) {
-        console.error('Error fetching students:', error);
+        console.error('Error fetching teachers:', error);
       } else {
-        setStudents(data || []);
+        setTeachers(data || []);
       }
     } catch (error) {
-      console.error('Error fetching students:', error);
+      console.error('Error fetching teachers:', error);
     }
   };
 
-  const handleAddStudent = () => {
+  const handleAddTeacher = () => {
     setModalVisible(true);
   };
 
@@ -61,32 +58,24 @@ export default function StudentsPage({ onBack }) {
         quality: 0.8,
       });
 
-      console.log('Image picker result:', result);
-
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        console.log('Selected image URI:', result.assets[0].uri);
-        setStudentData({...studentData, image: result.assets[0].uri});
-      } else {
-        console.log('Image selection was canceled or failed');
+        setTeacherData({...teacherData, image: result.assets[0].uri});
       }
     } catch (error) {
-      console.error('Error picking image:', error);
       Alert.alert('Error', 'Failed to pick image');
     }
   };
 
-  const handleSaveStudent = async () => {
+  const handleSaveTeacher = async () => {
     try {
-      // Generate auto ID starting from 1001
-      const autoId = 1001 + students.length;
+      const autoId = 2001 + teachers.length;
       
-      // Create auth user
       const { error: authError } = await supabase.auth.signUp({
-        email: studentData.email,
-        password: studentData.password,
+        email: teacherData.email,
+        password: teacherData.password,
         options: {
           data: {
-            role: 'student'
+            role: 'teacher'
           }
         }
       });
@@ -96,20 +85,17 @@ export default function StudentsPage({ onBack }) {
         return;
       }
 
-      // Save student to database
       const { data, error } = await supabase
-        .from('students')
+        .from('teachers')
         .insert([
           {
-            name: studentData.name,
-            age: parseInt(studentData.age),
-            dob: studentData.dob,
-            parents_name: studentData.parentsName,
-            class: studentData.class,
-            email: studentData.email,
-            gender: studentData.gender,
-            student_id: autoId.toString(),
-            image: studentData.image
+            name: teacherData.name,
+            age: parseInt(teacherData.age),
+            subject: teacherData.subject,
+            email: teacherData.email,
+            gender: teacherData.gender,
+            teacher_id: autoId.toString(),
+            image: teacherData.image
           }
         ])
         .select();
@@ -117,47 +103,44 @@ export default function StudentsPage({ onBack }) {
       if (error) {
         Alert.alert('Error', error.message);
       } else {
-        Alert.alert('Success', 'Student added successfully!');
+        Alert.alert('Success', 'Teacher added successfully!');
         setModalVisible(false);
-        setStudentData({
+        setTeacherData({
           name: '',
           age: '',
-          dob: '',
-          parentsName: '',
-          class: '',
+          subject: '',
           email: '',
           password: '',
           gender: 'male',
-          studentId: '',
           image: null
         });
-        fetchStudents(); // Refresh the list
+        fetchTeachers();
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to add student');
+      Alert.alert('Error', 'Failed to add teacher');
     }
   };
 
-  const handleStudentPress = (student) => {
-    setSelectedStudent(student);
+  const handleTeacherPress = (teacher) => {
+    setSelectedTeacher(teacher);
     setDetailsModalVisible(true);
   };
 
-  const renderStudent = ({ item }) => (
-    <TouchableOpacity style={styles.studentCard} onPress={() => handleStudentPress(item)}>
-      <View style={styles.studentImageContainer}>
+  const renderTeacher = ({ item }) => (
+    <TouchableOpacity style={styles.teacherCard} onPress={() => handleTeacherPress(item)}>
+      <View style={styles.teacherImageContainer}>
         {item.image ? (
-          <Image source={{ uri: item.image }} style={styles.studentImage} />
+          <Image source={{ uri: item.image }} style={styles.teacherImage} />
         ) : (
           <View style={styles.defaultAvatar}>
             <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
           </View>
         )}
       </View>
-      <View style={styles.studentInfo}>
-        <Text style={styles.studentName}>{item.name}</Text>
-        <Text style={styles.studentDetails}>ID: {item.student_id}</Text>
-        <Text style={styles.studentDetails}>Class: {item.class}</Text>
+      <View style={styles.teacherInfo}>
+        <Text style={styles.teacherName}>{item.name}</Text>
+        <Text style={styles.teacherDetails}>ID: {item.teacher_id}</Text>
+        <Text style={styles.teacherDetails}>Subject: {item.subject}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -168,27 +151,27 @@ export default function StudentsPage({ onBack }) {
         <TouchableOpacity onPress={onBack}>
           <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Students</Text>
+        <Text style={styles.title}>Teachers</Text>
       </View>
 
       <TextInput
         style={styles.searchBar}
-        placeholder="Search students..."
+        placeholder="Search teachers..."
         value={searchText}
         onChangeText={setSearchText}
       />
 
       <FlatList
-        data={students.filter(student => 
-          student.name.toLowerCase().includes(searchText.toLowerCase())
+        data={teachers.filter(teacher => 
+          teacher.name.toLowerCase().includes(searchText.toLowerCase())
         )}
-        renderItem={renderStudent}
+        renderItem={renderTeacher}
         keyExtractor={(item) => item.id}
-        style={styles.studentsList}
+        style={styles.teachersList}
         showsVerticalScrollIndicator={false}
       />
 
-      <TouchableOpacity style={styles.addButton} onPress={handleAddStudent}>
+      <TouchableOpacity style={styles.addButton} onPress={handleAddTeacher}>
         <Text style={styles.addButtonText}>+</Text>
       </TouchableOpacity>
 
@@ -200,15 +183,14 @@ export default function StudentsPage({ onBack }) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add Student</Text>
+            <Text style={styles.modalTitle}>Add Teacher</Text>
             
             <ScrollView style={styles.formContainer}>
               <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
-                {studentData.image ? (
+                {teacherData.image ? (
                   <Image 
-                    source={{ uri: studentData.image }} 
+                    source={{ uri: teacherData.image }} 
                     style={styles.selectedImage}
-                    onError={(error) => console.log('Image load error:', error)}
                   />
                 ) : (
                   <Text style={styles.imagePickerText}>📷 Add Photo</Text>
@@ -217,58 +199,44 @@ export default function StudentsPage({ onBack }) {
               
               <TextInput
                 style={styles.input}
-                placeholder="Student Name"
-                value={studentData.name}
-                onChangeText={(text) => setStudentData({...studentData, name: text})}
+                placeholder="Teacher Name"
+                value={teacherData.name}
+                onChangeText={(text) => setTeacherData({...teacherData, name: text})}
               />
               
               <TextInput
                 style={styles.input}
                 placeholder="Age"
                 keyboardType="numeric"
-                value={studentData.age}
-                onChangeText={(text) => setStudentData({...studentData, age: text})}
+                value={teacherData.age}
+                onChangeText={(text) => setTeacherData({...teacherData, age: text})}
               />
               
               <TextInput
                 style={styles.input}
-                placeholder="Date of Birth (DD/MM/YYYY)"
-                value={studentData.dob}
-                onChangeText={(text) => setStudentData({...studentData, dob: text})}
-              />
-              
-              <TextInput
-                style={styles.input}
-                placeholder="Parents Name"
-                value={studentData.parentsName}
-                onChangeText={(text) => setStudentData({...studentData, parentsName: text})}
-              />
-              
-              <TextInput
-                style={styles.input}
-                placeholder="Class"
-                value={studentData.class}
-                onChangeText={(text) => setStudentData({...studentData, class: text})}
+                placeholder="Subject"
+                value={teacherData.subject}
+                onChangeText={(text) => setTeacherData({...teacherData, subject: text})}
               />
               
               <View style={styles.autoIdContainer}>
-                <Text style={styles.autoIdLabel}>Student ID: {1001 + students.length}</Text>
+                <Text style={styles.autoIdLabel}>Teacher ID: {2001 + teachers.length}</Text>
                 <Text style={styles.autoIdNote}>(Auto-generated)</Text>
               </View>
               
               <View style={styles.genderContainer}>
                 <Text style={styles.genderLabel}>Gender:</Text>
                 <TouchableOpacity 
-                  style={[styles.genderButton, studentData.gender === 'male' && styles.selectedGender]}
-                  onPress={() => setStudentData({...studentData, gender: 'male'})}
+                  style={[styles.genderButton, teacherData.gender === 'male' && styles.selectedGender]}
+                  onPress={() => setTeacherData({...teacherData, gender: 'male'})}
                 >
-                  <Text style={[styles.genderText, studentData.gender === 'male' && styles.selectedGenderText]}>Male</Text>
+                  <Text style={[styles.genderText, teacherData.gender === 'male' && styles.selectedGenderText]}>Male</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={[styles.genderButton, studentData.gender === 'female' && styles.selectedGender]}
-                  onPress={() => setStudentData({...studentData, gender: 'female'})}
+                  style={[styles.genderButton, teacherData.gender === 'female' && styles.selectedGender]}
+                  onPress={() => setTeacherData({...teacherData, gender: 'female'})}
                 >
-                  <Text style={[styles.genderText, studentData.gender === 'female' && styles.selectedGenderText]}>Female</Text>
+                  <Text style={[styles.genderText, teacherData.gender === 'female' && styles.selectedGenderText]}>Female</Text>
                 </TouchableOpacity>
               </View>
               
@@ -277,16 +245,16 @@ export default function StudentsPage({ onBack }) {
                 placeholder="Email"
                 keyboardType="email-address"
                 autoCapitalize="none"
-                value={studentData.email}
-                onChangeText={(text) => setStudentData({...studentData, email: text})}
+                value={teacherData.email}
+                onChangeText={(text) => setTeacherData({...teacherData, email: text})}
               />
               
               <TextInput
                 style={styles.input}
                 placeholder="Password"
                 secureTextEntry
-                value={studentData.password}
-                onChangeText={(text) => setStudentData({...studentData, password: text})}
+                value={teacherData.password}
+                onChangeText={(text) => setTeacherData({...teacherData, password: text})}
               />
             </ScrollView>
             
@@ -300,7 +268,7 @@ export default function StudentsPage({ onBack }) {
               
               <TouchableOpacity 
                 style={[styles.modalButton, styles.saveButton]} 
-                onPress={handleSaveStudent}
+                onPress={handleSaveTeacher}
               >
                 <Text style={styles.saveButtonText}>Save</Text>
               </TouchableOpacity>
@@ -317,38 +285,38 @@ export default function StudentsPage({ onBack }) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Student Details</Text>
+            <Text style={styles.modalTitle}>Teacher Details</Text>
             
-            {selectedStudent && (
+            {selectedTeacher && (
               <ScrollView style={styles.detailsContainer}>
                 <View style={styles.detailImageContainer}>
-                  {selectedStudent.image ? (
-                    <Image source={{ uri: selectedStudent.image }} style={styles.detailImage} />
+                  {selectedTeacher.image ? (
+                    <Image source={{ uri: selectedTeacher.image }} style={styles.detailImage} />
                   ) : (
                     <View style={styles.detailDefaultAvatar}>
-                      <Text style={styles.detailAvatarText}>{selectedStudent.name.charAt(0).toUpperCase()}</Text>
+                      <Text style={styles.detailAvatarText}>{selectedTeacher.name.charAt(0).toUpperCase()}</Text>
                     </View>
                   )}
                 </View>
                 
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Name:</Text>
-                  <Text style={styles.detailValue}>{selectedStudent.name}</Text>
+                  <Text style={styles.detailValue}>{selectedTeacher.name}</Text>
                 </View>
                 
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Student ID:</Text>
-                  <Text style={styles.detailValue}>{selectedStudent.student_id || selectedStudent.studentId || 'N/A'}</Text>
+                  <Text style={styles.detailLabel}>Teacher ID:</Text>
+                  <Text style={styles.detailValue}>{selectedTeacher.teacher_id || 'N/A'}</Text>
                 </View>
                 
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Class:</Text>
-                  <Text style={styles.detailValue}>{selectedStudent.class}</Text>
+                  <Text style={styles.detailLabel}>Subject:</Text>
+                  <Text style={styles.detailValue}>{selectedTeacher.subject}</Text>
                 </View>
                 
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Age:</Text>
-                  <Text style={styles.detailValue}>{selectedStudent.age}</Text>
+                  <Text style={styles.detailValue}>{selectedTeacher.age}</Text>
                 </View>
               </ScrollView>
             )}
@@ -383,7 +351,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#4a90e2',
     position: 'absolute',
-    top: 5,
     left: -185,
     zIndex: 1,
   },
@@ -400,7 +367,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     fontSize: 16,
     marginBottom: 20,
-    width:350
+    width: 350,
   },
   addButton: {
     position: 'absolute',
@@ -506,11 +473,11 @@ const styles = StyleSheet.create({
     height: 96,
     borderRadius: 48,
   },
-  studentsList: {
+  teachersList: {
     flex: 1,
     marginBottom: 100,
   },
-  studentCard: {
+  teacherCard: {
     flexDirection: 'row',
     backgroundColor: '#f9f9f9',
     padding: 15,
@@ -518,10 +485,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     alignItems: 'center',
   },
-  studentImageContainer: {
+  teacherImageContainer: {
     marginRight: 15,
   },
-  studentImage: {
+  teacherImage: {
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -568,16 +535,16 @@ const styles = StyleSheet.create({
   selectedGenderText: {
     color: '#fff',
   },
-  studentInfo: {
+  teacherInfo: {
     flex: 1,
   },
-  studentName: {
+  teacherName: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
     marginBottom: 5,
   },
-  studentDetails: {
+  teacherDetails: {
     fontSize: 14,
     color: '#666',
     marginBottom: 2,

@@ -13,14 +13,22 @@ export default function StudentsPage({ onBack }) {
     name: '',
     age: '',
     dob: '',
-    parentsName: '',
-    class: '',
+    motherName: '',
+    motherContact: '',
+    fatherName: '',
+    fatherContact: '',
+    class: 'Creche',
     email: '',
     password: '',
     gender: 'male',
     studentId: '',
     image: null
   });
+
+  const classes = [
+    'Creche', 'Nursery', 'KG1', 'KG2', 'Class 1', 'Class 2', 'Class 3', 
+    'Class 4', 'Class 5', 'Class 6', 'JHS 1', 'JHS 2', 'JHS 3'
+  ];
 
   useEffect(() => {
     fetchStudents();
@@ -104,7 +112,10 @@ export default function StudentsPage({ onBack }) {
             name: studentData.name,
             age: parseInt(studentData.age),
             dob: studentData.dob,
-            parents_name: studentData.parentsName,
+            mother_name: studentData.motherName,
+            mother_contact: studentData.motherContact,
+            father_name: studentData.fatherName,
+            father_contact: studentData.fatherContact,
             class: studentData.class,
             email: studentData.email,
             gender: studentData.gender,
@@ -123,8 +134,11 @@ export default function StudentsPage({ onBack }) {
           name: '',
           age: '',
           dob: '',
-          parentsName: '',
-          class: '',
+          motherName: '',
+          motherContact: '',
+          fatherName: '',
+          fatherContact: '',
+          class: 'Creche',
           email: '',
           password: '',
           gender: 'male',
@@ -225,31 +239,64 @@ export default function StudentsPage({ onBack }) {
               <TextInput
                 style={styles.input}
                 placeholder="Age"
-                keyboardType="numeric"
+                keyboardType="number-pad"
                 value={studentData.age}
-                onChangeText={(text) => setStudentData({...studentData, age: text})}
+                onChangeText={(text) => setStudentData({...studentData, age: text.replace(/[^0-9]/g, '')})}
               />
               
               <TextInput
                 style={styles.input}
-                placeholder="Date of Birth (DD/MM/YYYY)"
+                placeholder="Date of Birth"
                 value={studentData.dob}
                 onChangeText={(text) => setStudentData({...studentData, dob: text})}
               />
               
               <TextInput
                 style={styles.input}
-                placeholder="Parents Name"
-                value={studentData.parentsName}
-                onChangeText={(text) => setStudentData({...studentData, parentsName: text})}
+                placeholder="Mother's Name"
+                value={studentData.motherName}
+                onChangeText={(text) => setStudentData({...studentData, motherName: text})}
               />
               
               <TextInput
                 style={styles.input}
-                placeholder="Class"
-                value={studentData.class}
-                onChangeText={(text) => setStudentData({...studentData, class: text})}
+                placeholder="Mother's Contact"
+                keyboardType="phone-pad"
+                value={studentData.motherContact}
+                onChangeText={(text) => setStudentData({...studentData, motherContact: text})}
               />
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Father's Name"
+                value={studentData.fatherName}
+                onChangeText={(text) => setStudentData({...studentData, fatherName: text})}
+              />
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Father's Contact"
+                keyboardType="phone-pad"
+                value={studentData.fatherContact}
+                onChangeText={(text) => setStudentData({...studentData, fatherContact: text})}
+              />
+              
+              <View style={styles.classContainer}>
+                <Text style={styles.classLabel}>Select Class:</Text>
+                <View style={styles.classGrid}>
+                  {classes.map((className) => (
+                    <TouchableOpacity
+                      key={className}
+                      style={[styles.classButton, studentData.class === className && styles.selectedClass]}
+                      onPress={() => setStudentData({...studentData, class: className})}
+                    >
+                      <Text style={[styles.classText, studentData.class === className && styles.selectedClassText]}>
+                        {className}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
               
               <View style={styles.autoIdContainer}>
                 <Text style={styles.autoIdLabel}>Student ID: {1001 + students.length}</Text>
@@ -639,5 +686,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 5,
+  },
+  classContainer: {
+    marginBottom: 20,
+  },
+  classLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
+  classGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  classButton: {
+    width: '30%',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  selectedClass: {
+    backgroundColor: '#4a90e2',
+    borderColor: '#4a90e2',
+  },
+  classText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  selectedClassText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });

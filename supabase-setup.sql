@@ -1,8 +1,5 @@
--- Drop table if exists
-DROP TABLE IF EXISTS students;
-
--- Create students table
-CREATE TABLE students (
+-- Create students table if not exists
+CREATE TABLE IF NOT EXISTS students (
   id BIGSERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   age INTEGER,
@@ -16,10 +13,17 @@ CREATE TABLE students (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Add new parent contact columns
+ALTER TABLE students ADD COLUMN IF NOT EXISTS mother_name VARCHAR(255);
+ALTER TABLE students ADD COLUMN IF NOT EXISTS mother_contact VARCHAR(50);
+ALTER TABLE students ADD COLUMN IF NOT EXISTS father_name VARCHAR(255);
+ALTER TABLE students ADD COLUMN IF NOT EXISTS father_contact VARCHAR(50);
+
 -- Enable Row Level Security
 ALTER TABLE students ENABLE ROW LEVEL SECURITY;
 
--- Create policy to allow all operations
+-- Drop existing policy if it exists and create new one
+DROP POLICY IF EXISTS "Allow all operations" ON students;
 CREATE POLICY "Allow all operations" ON students
   FOR ALL USING (true);
 
@@ -29,8 +33,8 @@ GRANT ALL ON students TO authenticated;
 GRANT USAGE ON SEQUENCE students_id_seq TO anon;
 GRANT USAGE ON SEQUENCE students_id_seq TO authenticated;
 
--- Create teachers table
-CREATE TABLE teachers (
+-- Create teachers table if not exists
+CREATE TABLE IF NOT EXISTS teachers (
   id BIGSERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   age INTEGER,
@@ -45,7 +49,8 @@ CREATE TABLE teachers (
 -- Enable Row Level Security for teachers
 ALTER TABLE teachers ENABLE ROW LEVEL SECURITY;
 
--- Create policy to allow all operations for teachers
+-- Drop existing policy if it exists and create new one for teachers
+DROP POLICY IF EXISTS "Allow all operations" ON teachers;
 CREATE POLICY "Allow all operations" ON teachers
   FOR ALL USING (true);
 

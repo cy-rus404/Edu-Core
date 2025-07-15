@@ -32,7 +32,7 @@ export default function AdminHomePage({ onLogout }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.welcome}>Welcome Admin</Text>
+      <Text style={styles.welcome}>Welcome Admin 👋</Text>
       
       <View style={styles.gridContainer}>
         <TouchableOpacity style={styles.box} onPress={() => handleNavigation('Students')}>
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   boxText: {
     color: '#fff',

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import StudentsPage from './StudentsPage';
 import TeachersPage from './TeachersPage';
+import ClassesPage from './ClassesPage';
 
 export default function AdminHomePage({ onLogout }) {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -13,6 +14,8 @@ export default function AdminHomePage({ onLogout }) {
       setCurrentPage('students');
     } else if (page === 'Teachers') {
       setCurrentPage('teachers');
+    } else if (page === 'Classes') {
+      setCurrentPage('classes');
     } else {
       console.log(`Navigate to ${page}`);
     }
@@ -28,6 +31,10 @@ export default function AdminHomePage({ onLogout }) {
 
   if (currentPage === 'teachers') {
     return <TeachersPage onBack={handleBack} />;
+  }
+
+  if (currentPage === 'classes') {
+    return <ClassesPage onBack={handleBack} />;
   }
 
   return (

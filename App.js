@@ -5,6 +5,7 @@ import LoginScreen from './LoginScreen';
 import SplashScreen from './SplashScreen';
 import HomePage from './HomePage';
 import AdminHomePage from './AdminHomePage';
+import StudentHomePage from './StudentHomePage';
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -60,6 +61,8 @@ export default function App() {
     if (isLoggedIn) {
       if (userRole === 'admin') {
         return <AdminHomePage onLogout={handleLogout} />;
+      } else if (userRole === 'student') {
+        return <StudentHomePage username={username} onLogout={handleLogout} />;
       }
       return <HomePage username={username} onLogout={handleLogout} />;
     }

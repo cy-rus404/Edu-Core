@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import { supabase } from './supabase';
 import StudentsPage from './StudentsPage';
 import TeachersPage from './TeachersPage';
 import AnnouncementsPage from './AnnouncementsPage';

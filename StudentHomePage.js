@@ -91,6 +91,7 @@ export default function StudentHomePage({ username, onLogout }) {
       onBack={handleBack}
       userRole="students"
       userId={studentData?.id}
+      onUpdateUnread={(count) => setUnreadAnnouncements(count)}
     />;
   }
 
@@ -128,14 +129,7 @@ export default function StudentHomePage({ username, onLogout }) {
           style={styles.actionButton} 
           onPress={() => handleNavigation('Announcements')}
         >
-          <View style={styles.buttonContent}>
-            <Text style={styles.buttonText}>Announcements</Text>
-            {unreadAnnouncements > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadAnnouncements}</Text>
-              </View>
-            )}
-          </View>
+          <Text style={styles.buttonText}>Announcements</Text>
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -223,28 +217,10 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     alignItems: 'center',
   },
-  buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-  },
-  badge: {
-    backgroundColor: '#ff3b30',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
   },
   logoutButton: {
     backgroundColor: '#ff4757',

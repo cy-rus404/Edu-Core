@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
 import { supabase } from './supabase';
 
-export default function AnnouncementsView({ onBack, userRole, userId }) {
+export default function AnnouncementsView({ onBack, userRole, userId, onUpdateUnread }) {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotification, setShowNotification] = useState(false);
 
   useEffect(() => {
     fetchAnnouncements();
@@ -69,7 +70,17 @@ export default function AnnouncementsView({ onBack, userRole, userId }) {
       );
 
       // Update unread count
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      const newUnreadCount = Math.max(0, unreadCount - 1);
+      setUnreadCount(newUnreadCount);
+      
+      // Show notification that message was read
+      setShowNotification(true);
+      setTimeout(() => setShowNotification(false), 3000);
+      
+      // Update parent component if callback provided
+      if (onUpdateUnread) {
+        onUpdateUnread(newUnreadCount);
+      }
     } catch (error) {
       console.error('Error marking announcement as read:', error);
     }
@@ -85,7 +96,6 @@ export default function AnnouncementsView({ onBack, userRole, userId }) {
       >
         <View style={styles.announcementHeader}>
           <Text style={styles.announcementTitle}>{item.title}</Text>
-          {!isRead && <View style={styles.unreadIndicator} />}
         </View>
         
         <Text style={styles.announcementMessage}>{item.message}</Text>
@@ -101,16 +111,17 @@ export default function AnnouncementsView({ onBack, userRole, userId }) {
 
   return (
     <View style={styles.container}>
+      {showNotification && (
+        <View style={styles.messageNotification}>
+          <Text style={styles.messageNotificationText}>Message marked as read</Text>
+        </View>
+      )}
+      
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack}>
           <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Announcements</Text>
-        {unreadCount > 0 && (
-          <View style={styles.badgeContainer}>
-            <Text style={styles.badgeText}>{unreadCount}</Text>
-          </View>
-        )}
       </View>
       
       <FlatList
@@ -135,6 +146,19 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingHorizontal: 24,
   },
+  messageNotification: {
+    backgroundColor: '#4cd964',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  messageNotificationText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -150,20 +174,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
-  badgeContainer: {
-    backgroundColor: '#ff3b30',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 10,
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
+
   announcementsList: {
     flex: 1,
   },
@@ -194,12 +205,7 @@ const styles = StyleSheet.create({
     color: '#333',
     flex: 1,
   },
-  unreadIndicator: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#ff3b30',
-  },
+
   announcementMessage: {
     fontSize: 16,
     color: '#333',

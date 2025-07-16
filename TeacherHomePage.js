@@ -100,6 +100,7 @@ export default function TeacherHomePage({ username, onLogout }) {
       onBack={handleBack}
       userRole="teachers"
       userId={teacherData?.id}
+      onUpdateUnread={(count) => setUnreadAnnouncements(count)}
     />;
   }
 
@@ -148,14 +149,7 @@ export default function TeacherHomePage({ username, onLogout }) {
           style={styles.box} 
           onPress={() => handleNavigation('Announcements')}
         >
-          <View style={styles.boxContent}>
-            <Text style={styles.boxText}>Announcements</Text>
-            {unreadAnnouncements > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadAnnouncements}</Text>
-              </View>
-            )}
-          </View>
+          <Text style={styles.boxText}>Announcements</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -227,28 +221,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
-  boxContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   boxText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: '600',
-  },
-  badge: {
-    backgroundColor: '#ff3b30',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
   },
   logoutBox: {
     backgroundColor: '#ff4757',

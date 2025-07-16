@@ -151,9 +151,48 @@ export default function GradesPage({ onBack, teacherClass, teacherSubject }) {
     }
   };
 
+  const deleteGrade = async (gradeId) => {
+    try {
+      const { error } = await supabase
+        .from('grades')
+        .delete()
+        .eq('id', gradeId);
+      
+      if (error) {
+        Alert.alert('Error', error.message);
+      } else {
+        Alert.alert('Success', 'Grade deleted successfully');
+        fetchAllGrades();
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete grade');
+    }
+  };
+
   const renderGradeItem = ({ item }) => (
     <View style={styles.gradeItem}>
-      <Text style={styles.gradeSubject}>{item.subject}</Text>
+      <View style={styles.gradeHeader}>
+        <Text style={styles.gradeSubject}>{item.subject}</Text>
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => {
+            Alert.alert(
+              'Delete Grade',
+              'Are you sure you want to delete this grade?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { 
+                  text: 'Delete', 
+                  onPress: () => deleteGrade(item.id),
+                  style: 'destructive'
+                }
+              ]
+            );
+          }}
+        >
+          <Text style={styles.deleteButtonText}>×</Text>
+        </TouchableOpacity>
+      </View>
       <View style={styles.gradeDetails}>
         <Text style={styles.gradeScore}>Score: {item.score}</Text>
         <Text style={[
@@ -171,8 +210,19 @@ export default function GradesPage({ onBack, teacherClass, teacherSubject }) {
     </View>
   );
 
+  const calculateFinalGrade = (grades) => {
+    if (grades.length === 0) return { score: 0, grade: 'N/A' };
+    
+    const totalScore = grades.reduce((sum, grade) => sum + grade.score, 0);
+    const averageScore = Math.round(totalScore / grades.length);
+    const finalGrade = getGradeFromScore(averageScore);
+    
+    return { score: averageScore, grade: finalGrade };
+  };
+
   const renderStudent = ({ item }) => {
     const studentGradesList = studentGrades[item.student_id] || [];
+    const finalGrade = calculateFinalGrade(studentGradesList);
     
     return (
       <View style={styles.studentCard}>
@@ -188,6 +238,26 @@ export default function GradesPage({ onBack, teacherClass, teacherSubject }) {
             <Text style={styles.addGradeText}>Add Grade</Text>
           </TouchableOpacity>
         </View>
+        
+        {studentGradesList.length > 0 && (
+          <View style={styles.finalGradeContainer}>
+            <Text style={styles.finalGradeLabel}>Final Grade:</Text>
+            <View style={styles.finalGradeContent}>
+              <Text style={styles.finalGradeScore}>Average: {finalGrade.score}%</Text>
+              <Text style={[
+                styles.finalGradeValue,
+                finalGrade.grade === 'A' ? styles.gradeA : 
+                finalGrade.grade === 'B' ? styles.gradeB :
+                finalGrade.grade === 'C' ? styles.gradeC :
+                finalGrade.grade === 'D' ? styles.gradeD :
+                finalGrade.grade === 'E' ? styles.gradeE : 
+                finalGrade.grade === 'N/A' ? styles.gradeNA : styles.gradeF
+              ]}>
+                {finalGrade.grade}
+              </Text>
+            </View>
+          </View>
+        )}
         
         {studentGradesList.length > 0 ? (
           <FlatList
@@ -336,6 +406,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#4a90e2',
     marginRight: 20,
+    left:-85
   },
   title: {
     fontSize: 24,
@@ -355,22 +426,23 @@ const styles = StyleSheet.create({
   studentCard: {
     backgroundColor: '#f9f9f9',
     borderRadius: 8,
-    padding: 15,
-    marginBottom: 15,
+    padding: 10,
+    marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
+    width: '100%',
   },
   studentHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-    paddingBottom: 10,
+    paddingBottom: 15,
   },
   studentName: {
     fontSize: 18,
@@ -384,13 +456,14 @@ const styles = StyleSheet.create({
   },
   addGradeButton: {
     backgroundColor: '#4a90e2',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
     borderRadius: 8,
   },
   addGradeText: {
     color: '#fff',
     fontWeight: '600',
+    fontSize: 16,
   },
   noGradesText: {
     textAlign: 'center',
@@ -401,8 +474,8 @@ const styles = StyleSheet.create({
   gradeItem: {
     backgroundColor: '#fff',
     borderRadius: 8,
-    padding: 12,
-    marginBottom: 10,
+    padding: 15,
+    marginBottom: 12,
     borderLeftWidth: 4,
     borderLeftColor: '#4a90e2',
     shadowColor: '#000',
@@ -410,6 +483,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 1,
+    width: '100%',
+  },
+  gradeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  deleteButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#ff3b30',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    lineHeight: 22,
   },
   gradeSubject: {
     fontSize: 16,
@@ -461,6 +555,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     backgroundColor: '#ff3b30',
   },
+  gradeNA: {
+    color: '#fff',
+    backgroundColor: '#8e8e93',
+  },
   gradeTerm: {
     fontSize: 12,
     color: '#999',
@@ -475,7 +573,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
-    width: '90%',
+    width: '95%',
     maxHeight: '80%',
   },
   modalTitle: {
@@ -579,5 +677,38 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  finalGradeContainer: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: '#5856d6',
+  },
+  finalGradeLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  finalGradeContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  finalGradeScore: {
+    fontSize: 16,
+    color: '#333',
+  },
+  finalGradeValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    width: 40,
+    height: 40,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    borderRadius: 20,
+    overflow: 'hidden',
   },
 });

@@ -145,7 +145,6 @@ export default function AttendancePage({ onBack, teacherClass }) {
             date: record.date,
             present: 0,
             absent: 0,
-            late: 0,
             students: []
           };
         }
@@ -160,8 +159,6 @@ export default function AttendancePage({ onBack, teacherClass }) {
           acc[record.date].present += 1;
         } else if (record.status === 'absent') {
           acc[record.date].absent += 1;
-        } else if (record.status === 'late') {
-          acc[record.date].late += 1;
         }
         
         return acc;
@@ -172,6 +169,22 @@ export default function AttendancePage({ onBack, teacherClass }) {
         new Date(b.date) - new Date(a.date)
       );
       
+      // Calculate attendance statistics for individual student
+      if (studentId) {
+        const totalDays = sortedReport.length;
+        const presentDays = data.filter(record => record.status === 'present').length;
+        const absentDays = data.filter(record => record.status === 'absent').length;
+        const attendanceRate = totalDays > 0 ? (presentDays / totalDays * 100).toFixed(1) : 0;
+        
+        // Add summary to the report
+        sortedReport.summary = {
+          totalDays,
+          presentDays,
+          absentDays,
+          attendanceRate
+        };
+      }
+      
       setAttendanceReport(sortedReport);
       setReportModalVisible(true);
     } catch (error) {
@@ -180,6 +193,71 @@ export default function AttendancePage({ onBack, teacherClass }) {
   };
 
   const [selectedStatus, setSelectedStatus] = useState({});
+
+  const resetAttendance = async (studentId = null) => {
+    try {
+      let query = supabase
+        .from('attendance')
+        .delete();
+      
+      if (studentId) {
+        // Reset ALL attendance for a specific student
+        query = query
+          .eq('student_id', studentId)
+          .eq('class', teacherClass);
+        
+        Alert.alert(
+          'Reset All Attendance',
+          'Are you sure you want to reset ALL attendance records for this student?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Reset', 
+              style: 'destructive',
+              onPress: async () => {
+                const { error } = await query;
+                
+                if (error) {
+                  Alert.alert('Error', error.message);
+                } else {
+                  // Update local state for the student
+                  setAttendance(prev => {
+                    const newAttendance = {...prev};
+                    delete newAttendance[studentId];
+                    return newAttendance;
+                  });
+                  setSelectedStatus(prev => {
+                    const newStatus = {...prev};
+                    delete newStatus[studentId];
+                    return newStatus;
+                  });
+                  Alert.alert('Success', 'All attendance records for this student have been reset');
+                  fetchAttendanceForDate(date);
+                }
+              }
+            }
+          ]
+        );
+      } else {
+        // Reset ALL attendance for the entire class
+        query = query.eq('class', teacherClass);
+        
+        const { error } = await query;
+        
+        if (error) {
+          Alert.alert('Error', error.message);
+        } else {
+          // Reset all attendance for the class
+          setAttendance({});
+          setSelectedStatus({});
+          Alert.alert('Success', 'All attendance records for the class have been reset');
+          fetchAttendanceForDate(date);
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to reset attendance');
+    }
+  };
 
   const saveAttendance = async (studentId) => {
     if (!selectedStatus[studentId]) {
@@ -203,8 +281,7 @@ export default function AttendancePage({ onBack, teacherClass }) {
           <Text style={styles.statusText}>Status: 
             <Text style={{
               color: tempStatus === 'present' ? '#4cd964' : 
-                     tempStatus === 'absent' ? '#ff3b30' : 
-                     tempStatus === 'late' ? '#ff9500' : '#666'
+                     tempStatus === 'absent' ? '#ff3b30' : '#666'
             }}>
               {tempStatus.charAt(0).toUpperCase() + tempStatus.slice(1)}
             </Text>
@@ -231,16 +308,6 @@ export default function AttendancePage({ onBack, teacherClass }) {
           >
             <Text style={styles.buttonText}>Absent</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[
-              styles.statusButton,
-              tempStatus === 'late' && styles.lateButton
-            ]}
-            onPress={() => setSelectedStatus({...selectedStatus, [item.student_id]: 'late'})}
-          >
-            <Text style={styles.buttonText}>Late</Text>
-          </TouchableOpacity>
         </View>
         
         <View style={styles.actionButtons}>
@@ -256,6 +323,13 @@ export default function AttendancePage({ onBack, teacherClass }) {
             onPress={() => generateReport(item.student_id)}
           >
             <Text style={styles.reportButtonText}>Report</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.resetButton}
+            onPress={() => resetAttendance(item.student_id)}
+          >
+            <Text style={styles.resetButtonText}>Reset All</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -321,12 +395,30 @@ export default function AttendancePage({ onBack, teacherClass }) {
       
       <View style={styles.classInfo}>
         <Text style={styles.classText}>Class: {teacherClass}</Text>
-        <TouchableOpacity 
-          style={styles.generateReportButton}
-          onPress={() => generateReport()}
-        >
-          <Text style={styles.generateReportText}>Generate Class Report</Text>
-        </TouchableOpacity>
+        <View style={styles.classButtons}>
+          <TouchableOpacity 
+            style={styles.generateReportButton}
+            onPress={() => generateReport()}
+          >
+            <Text style={styles.generateReportText}>Class Report</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.resetClassButton}
+            onPress={() => {
+              Alert.alert(
+                'Reset Class Attendance',
+                'Are you sure you want to reset attendance for the entire class?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Reset', onPress: () => resetAttendance(), style: 'destructive' }
+                ]
+              );
+            }}
+          >
+            <Text style={styles.resetClassText}>Reset All</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       
       <FlatList
@@ -350,6 +442,32 @@ export default function AttendancePage({ onBack, teacherClass }) {
               {selectedStudent ? `Attendance Report: ${selectedStudent.name}` : 'Class Attendance Report'}
             </Text>
             
+            {selectedStudent && attendanceReport.summary && (
+              <View style={styles.summaryContainer}>
+                <Text style={styles.summaryTitle}>Attendance Summary</Text>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Total School Days:</Text>
+                  <Text style={styles.summaryValue}>{attendanceReport.summary.totalDays}</Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Days Present:</Text>
+                  <Text style={styles.summaryValue}>{attendanceReport.summary.presentDays}</Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Days Absent:</Text>
+                  <Text style={styles.summaryValue}>{attendanceReport.summary.absentDays}</Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Attendance Rate:</Text>
+                  <Text style={[styles.summaryValue, 
+                    attendanceReport.summary.attendanceRate >= 75 ? styles.goodRate : styles.badRate
+                  ]}>
+                    {attendanceReport.summary.attendanceRate}%
+                  </Text>
+                </View>
+              </View>
+            )}
+            
             <ScrollView style={styles.reportList}>
               {attendanceReport.length > 0 ? (
                 attendanceReport.map(item => (
@@ -360,7 +478,6 @@ export default function AttendancePage({ onBack, teacherClass }) {
                       <View style={styles.reportSummary}>
                         <Text style={styles.reportStat}>Present: {item.present}</Text>
                         <Text style={styles.reportStat}>Absent: {item.absent}</Text>
-                        <Text style={styles.reportStat}>Late: {item.late}</Text>
                       </View>
                     ) : (
                       <View style={styles.reportSummary}>
@@ -407,6 +524,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#4a90e2',
     marginRight: 20,
+    left:-20,
   },
   title: {
     fontSize: 24,
@@ -443,13 +561,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  classButtons: {
+    flexDirection: 'row',
+  },
   generateReportButton: {
     backgroundColor: '#4a90e2',
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 8,
+    marginRight: 10,
   },
   generateReportText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  resetClassButton: {
+    backgroundColor: '#ff3b30',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+  },
+  resetClassText: {
     color: '#fff',
     fontWeight: '600',
   },
@@ -496,7 +628,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     borderRadius: 8,
     backgroundColor: '#f0f0f0',
-    width: '30%',
+    width: '48%',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#ddd',
@@ -520,6 +652,7 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
   },
   saveButton: {
     backgroundColor: '#4a90e2',
@@ -541,8 +674,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     flex: 1,
+    marginRight: 10,
   },
   reportButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  resetButton: {
+    backgroundColor: '#ff3b30',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    flex: 1,
+  },
+  resetButtonText: {
     color: '#fff',
     fontWeight: '600',
   },
@@ -605,5 +751,37 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
+  },
+  summaryContainer: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 20,
+  },
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  summaryLabel: {
+    fontSize: 16,
+    color: '#333',
+  },
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  goodRate: {
+    color: '#4cd964',
+  },
+  badRate: {
+    color: '#ff3b30',
   },
 });

@@ -2,12 +2,41 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import StudentsPage from './StudentsPage';
 import TeachersPage from './TeachersPage';
+import AnnouncementsPage from './AnnouncementsPage';
 import ClassesPage from './ClassesPage';
 
 export default function AdminHomePage({ onLogout }) {
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const [unreadCount, setUnreadCount] = useState(0);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const { width } = Dimensions.get('window');
+  
+  useEffect(() => {
+    checkUnreadAnnouncements();
+  }, []);
+  
+  const checkUnreadAnnouncements = async () => {
+    try {
+      // Get all announcements that have been read by someone
+      const { data, error } = await supabase
+        .from('announcements')
+        .select('*');
+      
+      if (error) {
+        console.error('Error fetching announcements:', error);
+        return;
+      }
+      
+      // Count total number of announcements with at least one unread
+      const totalUnread = data.filter(announcement => 
+        announcement.read_by.length < 1 // Consider it unread if no one has read it
+      ).length;
+      
+      setUnreadCount(totalUnread);
+    } catch (error) {
+      console.error('Error checking unread announcements:', error);
+    }
+  };
 
   const handleNavigation = (page) => {
     if (page === 'Students') {
@@ -16,6 +45,8 @@ export default function AdminHomePage({ onLogout }) {
       setCurrentPage('teachers');
     } else if (page === 'Classes') {
       setCurrentPage('classes');
+    } else if (page === 'Announcements') {
+      setCurrentPage('Announcements');
     } else {
       console.log(`Navigate to ${page}`);
     }
@@ -31,6 +62,10 @@ export default function AdminHomePage({ onLogout }) {
 
   if (currentPage === 'teachers') {
     return <TeachersPage onBack={handleBack} />;
+  }
+
+  if (currentPage === 'Announcements') {
+    return <AnnouncementsPage onBack={handleBack} />;
   }
 
   if (currentPage === 'classes') {

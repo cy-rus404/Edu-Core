@@ -119,3 +119,28 @@ GRANT ALL ON grades TO anon;
 GRANT ALL ON grades TO authenticated;
 GRANT USAGE ON SEQUENCE grades_id_seq TO anon;
 GRANT USAGE ON SEQUENCE grades_id_seq TO authenticated;
+
+-- Create announcements table
+CREATE TABLE IF NOT EXISTS announcements (
+  id BIGSERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  message TEXT NOT NULL,
+  recipients VARCHAR(50) NOT NULL, -- 'students', 'teachers', 'all'
+  sender VARCHAR(50) NOT NULL,
+  read_by JSONB DEFAULT '[]',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable Row Level Security for announcements
+ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
+
+-- Create policy to allow all operations for announcements
+DROP POLICY IF EXISTS "Allow all operations" ON announcements;
+CREATE POLICY "Allow all operations" ON announcements
+  FOR ALL USING (true);
+
+-- Grant permissions for announcements
+GRANT ALL ON announcements TO anon;
+GRANT ALL ON announcements TO authenticated;
+GRANT USAGE ON SEQUENCE announcements_id_seq TO anon;
+GRANT USAGE ON SEQUENCE announcements_id_seq TO authenticated;

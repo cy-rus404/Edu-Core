@@ -29,29 +29,9 @@ export default function TeacherHomePage({ username, onLogout }) {
   }, [unreadAnnouncements]);
 
   const checkUnreadAnnouncements = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('announcements')
-        .select('*')
-        .or('recipients.eq.teachers,recipients.eq.all');
-      
-      if (error) {
-        console.error('Error fetching announcements:', error);
-        return;
-      }
-
-      // Count announcements where user ID is not in read_by
-      const unreadCount = data.filter(announcement => 
-        !announcement.read_by.includes(user.id)
-      ).length;
-      
-      setUnreadAnnouncements(unreadCount);
-    } catch (error) {
-      console.error('Error checking unread announcements:', error);
-    }
+    // We've removed the badge, so this function is no longer needed
+    // but we keep it as a placeholder for future functionality
+    setUnreadAnnouncements(0);
   };
 
   const fetchTeacherData = async () => {

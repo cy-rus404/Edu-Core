@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, Modal, TextInput } from 'react-native';
 import { supabase } from './supabase';
 
 export default function AnnouncementsView({ onBack, userRole, userId, onUpdateUnread }) {
@@ -7,6 +7,9 @@ export default function AnnouncementsView({ onBack, userRole, userId, onUpdateUn
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotification, setShowNotification] = useState(false);
+  const [replyModalVisible, setReplyModalVisible] = useState(false);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
+  const [replyText, setReplyText] = useState('');
 
   useEffect(() => {
     fetchAnnouncements();
@@ -14,7 +17,7 @@ export default function AnnouncementsView({ onBack, userRole, userId, onUpdateUn
 
   const fetchAnnouncements = async () => {
     try {
-      // Get announcements for this user's role or all users
+      // Simple query that works with the current database structure
       const { data, error } = await supabase
         .from('announcements')
         .select('*')
@@ -27,9 +30,10 @@ export default function AnnouncementsView({ onBack, userRole, userId, onUpdateUn
       }
 
       // Count unread announcements
-      const unread = data.filter(announcement => 
-        !announcement.read_by.includes(userId)
-      ).length;
+      const unread = data.filter(announcement => {
+        const readBy = Array.isArray(announcement.read_by) ? announcement.read_by : [];
+        return !readBy.includes(userId);
+      }).length;
       
       setUnreadCount(unread);
       setAnnouncements(data || []);
@@ -40,15 +44,53 @@ export default function AnnouncementsView({ onBack, userRole, userId, onUpdateUn
     }
   };
 
-  const markAsRead = async (announcement) => {
-    // If already read, do nothing
-    if (announcement.read_by.includes(userId)) {
+  const sendReply = async () => {
+    if (!replyText.trim() || !selectedAnnouncement) {
+      Alert.alert('Error', 'Please enter a reply');
       return;
     }
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { data, error } = await supabase
+        .from('announcements')
+        .insert([
+          {
+            title: `Re: ${selectedAnnouncement.title}`,
+            message: replyText,
+            recipients: 'all', // Use 'all' instead of 'specific' for now
+            sender: userRole === 'teachers' ? 'teacher' : 'student',
+            parent_id: selectedAnnouncement.id,
+            read_by: []
+          }
+        ]);
+      
+      if (error) {
+        Alert.alert('Error', error.message);
+      } else {
+        setReplyModalVisible(false);
+        setReplyText('');
+        Alert.alert('Success', 'Reply sent successfully');
+        fetchAnnouncements();
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to send reply');
+    }
+  };
+
+  const markAsRead = async (announcement) => {
+    // If already read, do nothing
+    if (announcement.read_by && announcement.read_by.includes(userId)) {
+      return;
+    }
+    
+    // Ensure read_by is an array
+    const currentReadBy = Array.isArray(announcement.read_by) ? announcement.read_by : [];
+
+    try {
       // Add user to read_by array
-      const updatedReadBy = [...announcement.read_by, userId];
+      const updatedReadBy = [...currentReadBy, userId];
       
       const { error } = await supabase
         .from('announcements')
@@ -87,7 +129,9 @@ export default function AnnouncementsView({ onBack, userRole, userId, onUpdateUn
   };
 
   const renderAnnouncementItem = ({ item }) => {
-    const isRead = item.read_by.includes(userId);
+    const isRead = item.read_by?.includes(userId) || false;
+    // Allow teachers to reply to admin messages
+    const canReply = userRole === 'teachers' && item.sender === 'admin' && !item.parent_id;
     
     return (
       <TouchableOpacity 
@@ -96,6 +140,7 @@ export default function AnnouncementsView({ onBack, userRole, userId, onUpdateUn
       >
         <View style={styles.announcementHeader}>
           <Text style={styles.announcementTitle}>{item.title}</Text>
+          {item.parent_id && <Text style={styles.replyTag}>Reply</Text>}
         </View>
         
         <Text style={styles.announcementMessage}>{item.message}</Text>
@@ -104,6 +149,18 @@ export default function AnnouncementsView({ onBack, userRole, userId, onUpdateUn
           <Text style={styles.dateText}>
             {new Date(item.created_at).toLocaleDateString()} {new Date(item.created_at).toLocaleTimeString()}
           </Text>
+          
+          {canReply && (
+            <TouchableOpacity 
+              style={styles.replyButton}
+              onPress={() => {
+                setSelectedAnnouncement(item);
+                setReplyModalVisible(true);
+              }}
+            >
+              <Text style={styles.replyButtonText}>Reply</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -135,6 +192,43 @@ export default function AnnouncementsView({ onBack, userRole, userId, onUpdateUn
           <Text style={styles.emptyText}>No announcements yet</Text>
         }
       />
+      
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={replyModalVisible}
+        onRequestClose={() => setReplyModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Reply to Announcement</Text>
+            
+            <TextInput
+              style={[styles.input, styles.messageInput]}
+              placeholder="Type your reply here..."
+              multiline
+              value={replyText}
+              onChangeText={setReplyText}
+            />
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]} 
+                onPress={() => setReplyModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.sendButton]} 
+                onPress={sendReply}
+              >
+                <Text style={styles.sendButtonText}>Send</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -213,7 +307,8 @@ const styles = StyleSheet.create({
   },
   announcementFooter: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: '#eee',
     paddingTop: 10,
@@ -222,10 +317,89 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
   },
+  replyButton: {
+    backgroundColor: '#4a90e2',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  replyButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  replyTag: {
+    backgroundColor: '#5856d6',
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
   emptyText: {
     textAlign: 'center',
     color: '#666',
     fontStyle: 'italic',
     marginTop: 40,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    width: '90%',
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#333',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    marginBottom: 15,
+  },
+  messageInput: {
+    height: 120,
+    textAlignVertical: 'top',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginHorizontal: 5,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#ccc',
+  },
+  sendButton: {
+    backgroundColor: '#4a90e2',
+  },
+  cancelButtonText: {
+    color: '#333',
+    fontWeight: '600',
+  },
+  sendButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });

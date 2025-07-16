@@ -9,12 +9,37 @@ export default function AnnouncementsPage({ onBack }) {
   const [announcementData, setAnnouncementData] = useState({
     title: '',
     message: '',
-    recipients: 'all', // 'students', 'teachers', 'all'
+    recipients: 'all', // 'students', 'teachers', 'all', 'specific'
+    specificTeacher: '',
+    canReply: false
   });
+  const [teachers, setTeachers] = useState([]);
 
   useEffect(() => {
     fetchAnnouncements();
   }, []);
+  
+  useEffect(() => {
+    if (announcementData.recipients === 'specific' || announcementData.recipients === 'teachers') {
+      fetchTeachers();
+    }
+  }, [announcementData.recipients]);
+  
+  const fetchTeachers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('teachers')
+        .select('id, name, teacher_id');
+      
+      if (error) {
+        console.error('Error fetching teachers:', error);
+      } else {
+        setTeachers(data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching teachers:', error);
+    }
+  };
 
   const fetchAnnouncements = async () => {
     try {
@@ -40,6 +65,8 @@ export default function AnnouncementsPage({ onBack }) {
       title: '',
       message: '',
       recipients: 'all',
+      specificTeacher: '',
+      canReply: false
     });
     setModalVisible(true);
   };
@@ -50,14 +77,23 @@ export default function AnnouncementsPage({ onBack }) {
       return;
     }
 
+    if (announcementData.recipients === 'specific' && !announcementData.specificTeacher) {
+      Alert.alert('Error', 'Please select a teacher');
+      return;
+    }
+
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const { data, error } = await supabase
         .from('announcements')
         .insert([
           {
-            title: announcementData.title,
+            title: announcementData.recipients === 'specific' ? 
+              `${announcementData.title} (To: ${teachers.find(t => t.id === announcementData.specificTeacher)?.name || 'Teacher'})` : 
+              announcementData.title,
             message: announcementData.message,
-            recipients: announcementData.recipients,
+            recipients: announcementData.recipients === 'specific' ? 'teachers' : announcementData.recipients,
             sender: 'admin',
             read_by: []
           }
@@ -241,7 +277,75 @@ export default function AnnouncementsPage({ onBack }) {
                   Teachers
                 </Text>
               </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[
+                  styles.recipientButton,
+                  announcementData.recipients === 'specific' && styles.selectedRecipientButton
+                ]}
+                onPress={() => setAnnouncementData({...announcementData, recipients: 'specific'})}
+              >
+                <Text style={[
+                  styles.recipientButtonText,
+                  announcementData.recipients === 'specific' && styles.selectedRecipientText
+                ]}>
+                  Specific Teacher
+                </Text>
+              </TouchableOpacity>
             </View>
+            
+            {announcementData.recipients === 'specific' && (
+              <View style={styles.teacherSelector}>
+                <Text style={styles.inputLabel}>Select Teacher:</Text>
+                <ScrollView style={styles.teacherList} nestedScrollEnabled={true}>
+                  {teachers.map(teacher => (
+                    <TouchableOpacity
+                      key={teacher.id}
+                      style={[
+                        styles.teacherItem,
+                        announcementData.specificTeacher === teacher.id && styles.selectedTeacherItem
+                      ]}
+                      onPress={() => setAnnouncementData({...announcementData, specificTeacher: teacher.id})}
+                    >
+                      <Text style={styles.teacherName}>{teacher.name} (ID: {teacher.teacher_id})</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+            
+            {(announcementData.recipients === 'teachers' || announcementData.recipients === 'specific') && (
+              <View style={styles.replyOption}>
+                <Text style={styles.inputLabel}>Allow Reply:</Text>
+                <View style={styles.replyButtons}>
+                  <TouchableOpacity
+                    style={[
+                      styles.replyButton,
+                      announcementData.canReply && styles.selectedReplyButton
+                    ]}
+                    onPress={() => setAnnouncementData({...announcementData, canReply: true})}
+                  >
+                    <Text style={[
+                      styles.replyButtonText,
+                      announcementData.canReply && styles.selectedReplyText
+                    ]}>Yes</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[
+                      styles.replyButton,
+                      !announcementData.canReply && styles.selectedReplyButton
+                    ]}
+                    onPress={() => setAnnouncementData({...announcementData, canReply: false})}
+                  >
+                    <Text style={[
+                      styles.replyButtonText,
+                      !announcementData.canReply && styles.selectedReplyText
+                    ]}>No</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
             
             <View style={styles.modalButtons}>
               <TouchableOpacity 
@@ -431,6 +535,58 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   selectedRecipientText: {
+    color: '#fff',
+  },
+  teacherSelector: {
+    marginBottom: 15,
+  },
+  teacherList: {
+    maxHeight: 150,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  teacherItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  selectedTeacherItem: {
+    backgroundColor: '#e6f2ff',
+  },
+  teacherName: {
+    fontSize: 16,
+    color: '#333',
+  },
+  replyOption: {
+    marginBottom: 15,
+  },
+  replyButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  replyButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginHorizontal: 5,
+    alignItems: 'center',
+  },
+  selectedReplyButton: {
+    backgroundColor: '#4a90e2',
+    borderColor: '#3a80d2',
+  },
+  replyButtonText: {
+    color: '#333',
+    fontWeight: '500',
+  },
+  selectedReplyText: {
     color: '#fff',
   },
   modalButtons: {

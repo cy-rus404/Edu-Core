@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { supabase } from './supabase';
 import AnnouncementsView from './AnnouncementsView';
+import MessagePage from './MessagePage';
 
 export default function StudentHomePage({ username, onLogout }) {
   const [studentData, setStudentData] = useState(null);
@@ -27,29 +28,9 @@ export default function StudentHomePage({ username, onLogout }) {
   }, [unreadAnnouncements]);
 
   const checkUnreadAnnouncements = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('announcements')
-        .select('*')
-        .or('recipients.eq.students,recipients.eq.all');
-      
-      if (error) {
-        console.error('Error fetching announcements:', error);
-        return;
-      }
-
-      // Count announcements where user ID is not in read_by
-      const unreadCount = data.filter(announcement => 
-        !announcement.read_by.includes(user.id)
-      ).length;
-      
-      setUnreadAnnouncements(unreadCount);
-    } catch (error) {
-      console.error('Error checking unread announcements:', error);
-    }
+    // We've removed the badge, so this function is no longer needed
+    // but we keep it as a placeholder for future functionality
+    setUnreadAnnouncements(0);
   };
 
   const fetchStudentData = async () => {
@@ -95,6 +76,13 @@ export default function StudentHomePage({ username, onLogout }) {
     />;
   }
 
+  if (currentPage === 'Messages') {
+    return <MessagePage 
+      onBack={handleBack}
+      studentData={studentData}
+    />;
+  }
+
   return (
     <View style={styles.container}>
       {showNotification && unreadAnnouncements > 0 && (
@@ -130,6 +118,13 @@ export default function StudentHomePage({ username, onLogout }) {
           onPress={() => handleNavigation('Announcements')}
         >
           <Text style={styles.buttonText}>Announcements</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.actionButton} 
+          onPress={() => handleNavigation('Messages')}
+        >
+          <Text style={styles.buttonText}>Message Teachers</Text>
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { supabase } from './supabase';
 import AttendancePage from './AttendancePage';
+import GradesPage from './GradesPage';
 
 export default function TeacherHomePage({ username, onLogout }) {
   const [teacherData, setTeacherData] = useState(null);
@@ -42,6 +43,14 @@ export default function TeacherHomePage({ username, onLogout }) {
 
   if (currentPage === 'Attendance' && teacherData) {
     return <AttendancePage onBack={handleBack} teacherClass={teacherData.assigned_class} />;
+  }
+
+  if (currentPage === 'Grades' && teacherData) {
+    return <GradesPage 
+      onBack={handleBack} 
+      teacherClass={teacherData.assigned_class} 
+      teacherSubject={teacherData.subject} 
+    />;
   }
 
   return (

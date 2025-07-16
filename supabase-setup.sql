@@ -91,3 +91,31 @@ GRANT ALL ON attendance TO anon;
 GRANT ALL ON attendance TO authenticated;
 GRANT USAGE ON SEQUENCE attendance_id_seq TO anon;
 GRANT USAGE ON SEQUENCE attendance_id_seq TO authenticated;
+
+-- Create grades table
+CREATE TABLE IF NOT EXISTS grades (
+  id BIGSERIAL PRIMARY KEY,
+  student_id VARCHAR(100) NOT NULL,
+  student_name VARCHAR(255) NOT NULL,
+  class VARCHAR(100) NOT NULL,
+  subject VARCHAR(100) NOT NULL,
+  score INTEGER NOT NULL,
+  grade VARCHAR(2) NOT NULL,
+  term VARCHAR(50) NOT NULL,
+  academic_year VARCHAR(20) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable Row Level Security for grades
+ALTER TABLE grades ENABLE ROW LEVEL SECURITY;
+
+-- Create policy to allow all operations for grades
+DROP POLICY IF EXISTS "Allow all operations" ON grades;
+CREATE POLICY "Allow all operations" ON grades
+  FOR ALL USING (true);
+
+-- Grant permissions for grades
+GRANT ALL ON grades TO anon;
+GRANT ALL ON grades TO authenticated;
+GRANT USAGE ON SEQUENCE grades_id_seq TO anon;
+GRANT USAGE ON SEQUENCE grades_id_seq TO authenticated;

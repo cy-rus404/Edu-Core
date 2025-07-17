@@ -612,6 +612,6 @@ const styles = StyleSheet.create({
   },
   sendButtonText: {
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: '601',
   },
 });

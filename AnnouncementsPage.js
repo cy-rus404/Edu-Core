@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
   },
   recipientButton: {
     paddingVertical: 10,
-    paddingHorizontal: 15,
+    paddingHorizontal: 1,
     borderRadius: 8,
     backgroundColor: '#f0f0f0',
     borderWidth: 1,
@@ -533,6 +533,7 @@ const styles = StyleSheet.create({
   recipientButtonText: {
     color: '#333',
     fontWeight: '500',
+    textAlign:'center'
   },
   selectedRecipientText: {
     color: '#fff',

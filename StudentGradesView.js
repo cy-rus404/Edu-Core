@@ -14,6 +14,12 @@ export default function StudentGradesView({ onBack, studentData }) {
 
   const fetchGrades = async () => {
     try {
+      if (!studentData || !studentData.student_id) {
+        console.error('Student data or student_id is missing');
+        setLoading(false);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('grades')
         .select('*')

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { supabase } from './supabase';
 import AnnouncementsView from './AnnouncementsView';
-import MessagePage from './MessagePage';
+import MessagesListView from './MessagesListView';
 import StudentAttendanceView from './StudentAttendanceView';
 import StudentGradesView from './StudentGradesView';
 import TimetablePage from './TimetablePage';
@@ -81,9 +81,10 @@ export default function StudentHomePage({ username, onLogout }) {
   }
 
   if (currentPage === 'Messages') {
-    return <MessagePage 
+    return <MessagesListView 
       onBack={handleBack}
-      studentData={studentData}
+      userRole="student"
+      userData={studentData}
     />;
   }
 

@@ -6,6 +6,7 @@ import GradesPage from './GradesPage';
 import AnnouncementsView from './AnnouncementsView';
 import TimetablePage from './TimetablePage';
 import AssignmentsPage from './AssignmentsPage';
+import MessagesListView from './MessagesListView';
 
 export default function TeacherHomePage({ username, onLogout }) {
   const [teacherData, setTeacherData] = useState(null);
@@ -102,6 +103,14 @@ export default function TeacherHomePage({ username, onLogout }) {
     />;
   }
 
+  if (currentPage === 'Messages') {
+    return <MessagesListView 
+      onBack={handleBack}
+      userRole="teacher"
+      userData={teacherData}
+    />;
+  }
+
   return (
     <View style={styles.container}>
       {showNotification && unreadAnnouncements > 0 && (
@@ -147,7 +156,14 @@ export default function TeacherHomePage({ username, onLogout }) {
           style={styles.box} 
           onPress={() => handleNavigation('Announcements')}
         >
-          <Text style={styles.boxText}>Announcements</Text>
+          <Text style={styles.boxText}>Messages</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.box} 
+          onPress={() => handleNavigation('Messages')}
+        >
+          <Text style={styles.boxText}>Messages</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 

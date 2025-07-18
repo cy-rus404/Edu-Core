@@ -127,7 +127,6 @@ CREATE TABLE IF NOT EXISTS announcements (
   message TEXT NOT NULL,
   recipients VARCHAR(50) NOT NULL, -- 'students', 'teachers', 'all'
   sender VARCHAR(50) NOT NULL,
-  parent_id BIGINT, -- For replies
   read_by JSONB DEFAULT '[]',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -136,6 +135,7 @@ CREATE TABLE IF NOT EXISTS announcements (
 ALTER TABLE announcements DROP COLUMN IF EXISTS specific_recipient;
 ALTER TABLE announcements DROP COLUMN IF EXISTS can_reply;
 ALTER TABLE announcements DROP COLUMN IF EXISTS sender_id;
+ALTER TABLE announcements DROP COLUMN IF EXISTS parent_id;
 
 -- Enable Row Level Security for announcements
 ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;

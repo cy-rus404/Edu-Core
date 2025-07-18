@@ -61,7 +61,6 @@ export default function AnnouncementsView({ onBack, userRole, userId, onUpdateUn
             message: replyText,
             recipients: 'all', // Use 'all' instead of 'specific' for now
             sender: userRole === 'teachers' ? 'teacher' : 'student',
-            parent_id: selectedAnnouncement.id,
             read_by: []
           }
         ]);
@@ -76,6 +75,24 @@ export default function AnnouncementsView({ onBack, userRole, userId, onUpdateUn
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to send reply');
+    }
+  };
+
+  const deleteAnnouncement = async (id) => {
+    try {
+      const { error } = await supabase
+        .from('announcements')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        Alert.alert('Error', error.message);
+      } else {
+        Alert.alert('Success', 'Message deleted successfully');
+        fetchAnnouncements();
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete message');
     }
   };
 
@@ -131,7 +148,7 @@ export default function AnnouncementsView({ onBack, userRole, userId, onUpdateUn
   const renderAnnouncementItem = ({ item }) => {
     const isRead = item.read_by?.includes(userId) || false;
     // Allow teachers to reply to admin messages
-    const canReply = userRole === 'teachers' && item.sender === 'admin' && !item.parent_id;
+    const canReply = userRole === 'teachers' && item.sender === 'admin';
     
     return (
       <TouchableOpacity 
@@ -140,7 +157,28 @@ export default function AnnouncementsView({ onBack, userRole, userId, onUpdateUn
       >
         <View style={styles.announcementHeader}>
           <Text style={styles.announcementTitle}>{item.title}</Text>
-          {item.parent_id && <Text style={styles.replyTag}>Reply</Text>}
+          <View style={styles.headerButtons}>
+            {item.title.startsWith('Re:') && <Text style={styles.replyTag}>Reply</Text>}
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => {
+                Alert.alert(
+                  'Delete Message',
+                  'Are you sure you want to delete this message?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { 
+                      text: 'Delete', 
+                      onPress: () => deleteAnnouncement(item.id),
+                      style: 'destructive'
+                    }
+                  ]
+                );
+              }}
+            >
+              <Text style={styles.deleteButtonText}>×</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         
         <Text style={styles.announcementMessage}>{item.message}</Text>
@@ -298,6 +336,25 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     flex: 1,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deleteButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#ff3b30',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    lineHeight: 22,
   },
 
   announcementMessage: {

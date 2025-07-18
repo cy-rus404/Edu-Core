@@ -3,6 +3,10 @@ import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { supabase } from './supabase';
 import AnnouncementsView from './AnnouncementsView';
 import MessagePage from './MessagePage';
+import StudentAttendanceView from './StudentAttendanceView';
+import StudentGradesView from './StudentGradesView';
+import TimetablePage from './TimetablePage';
+import AssignmentsPage from './AssignmentsPage';
 
 export default function StudentHomePage({ username, onLogout }) {
   const [studentData, setStudentData] = useState(null);
@@ -83,6 +87,22 @@ export default function StudentHomePage({ username, onLogout }) {
     />;
   }
 
+  if (currentPage === 'Attendance') {
+    return <StudentAttendanceView onBack={handleBack} studentData={studentData} />;
+  }
+
+  if (currentPage === 'Grades') {
+    return <StudentGradesView onBack={handleBack} studentData={studentData} />;
+  }
+
+  if (currentPage === 'Timetable') {
+    return <TimetablePage onBack={handleBack} userRole="student" classId={studentData?.class} />;
+  }
+
+  if (currentPage === 'Assignments') {
+    return <AssignmentsPage onBack={handleBack} userRole="student" studentData={studentData} />;
+  }
+
   return (
     <View style={styles.container}>
       {showNotification && unreadAnnouncements > 0 && (
@@ -93,42 +113,63 @@ export default function StudentHomePage({ username, onLogout }) {
         </View>
       )}
       
-      <Text style={styles.welcome}>Welcome {username}!</Text>
+      <View style={styles.header}>
+        <Text style={styles.welcome}>Welcome {username}!</Text>
+        {studentData && (
+          <Text style={styles.classInfo}>
+            Class: {studentData.class || 'Not Assigned'}
+          </Text>
+        )}
+      </View>
       
-      {studentData && (
-        <View style={styles.profileContainer}>
-          <View style={styles.imageContainer}>
-            {studentData.image ? (
-              <Image source={{ uri: studentData.image }} style={styles.profileImage} />
-            ) : (
-              <View style={styles.defaultAvatar}>
-                <Text style={styles.avatarText}>{studentData.name.charAt(0).toUpperCase()}</Text>
-              </View>
-            )}
-          </View>
-          
-          <Text style={styles.email}>{studentData.email}</Text>
-          <Text style={styles.studentId}>ID: {studentData.student_id}</Text>
-        </View>
-      )}
-      
-      <View style={styles.buttonsContainer}>
+      <View style={styles.gridContainer}>
         <TouchableOpacity 
-          style={styles.actionButton} 
+          style={styles.box} 
+          onPress={() => handleNavigation('Attendance')}
+        >
+          <Text style={styles.boxText}>My Attendance</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.box} 
+          onPress={() => handleNavigation('Grades')}
+        >
+          <Text style={styles.boxText}>My Grades</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.box} 
+          onPress={() => handleNavigation('Timetable')}
+        >
+          <Text style={styles.boxText}>Timetable</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.box} 
+          onPress={() => handleNavigation('Assignments')}
+        >
+          <Text style={styles.boxText}>Assignments</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.box} 
           onPress={() => handleNavigation('Announcements')}
         >
-          <Text style={styles.buttonText}>Announcements</Text>
+          <Text style={styles.boxText}>Announcements</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={styles.actionButton} 
+          style={styles.box} 
           onPress={() => handleNavigation('Messages')}
         >
-          <Text style={styles.buttonText}>Message Teachers</Text>
+          <Text style={styles.boxText}>Message Teachers</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Logout</Text>
+        <TouchableOpacity 
+          style={[styles.box, styles.logoutBox]} 
+          onPress={handleLogout}
+        >
+          <Text style={[styles.boxText, styles.logoutText]}>Log Out</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -141,7 +182,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     paddingTop: 60,
     paddingHorizontal: 24,
-    alignItems: 'center',
   },
   notification: {
     backgroundColor: '#ff3b30',
@@ -157,76 +197,45 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
+  header: {
+    marginBottom: 40,
+  },
   welcome: {
     fontSize: 28,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 40,
-    textAlign: 'center',
+    marginBottom: 10,
   },
-  profileContainer: {
-    alignItems: 'center',
-    marginBottom: 50,
+  classInfo: {
+    fontSize: 18,
+    color: '#4a90e2',
+    fontWeight: '500',
   },
-  imageContainer: {
-    marginBottom: 20,
+  gridContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignContent: 'flex-start',
   },
-  profileImage: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-  },
-  defaultAvatar: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
+  box: {
+    width: '48%',
+    height: 120,
     backgroundColor: '#4a90e2',
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 20,
   },
-  avatarText: {
+  boxText: {
     color: '#fff',
-    fontSize: 60,
-    fontWeight: '600',
-  },
-  email: {
     fontSize: 18,
-    color: '#666',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  studentId: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-  },
-  buttonsContainer: {
-    width: '100%',
-    marginTop: 20,
-  },
-  actionButton: {
-    backgroundColor: '#4a90e2',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    marginBottom: 15,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
     fontWeight: '600',
   },
-  logoutButton: {
+  logoutBox: {
     backgroundColor: '#ff4757',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
   },
   logoutText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });

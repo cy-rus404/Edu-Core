@@ -4,6 +4,8 @@ import { supabase } from './supabase';
 import AttendancePage from './AttendancePage';
 import GradesPage from './GradesPage';
 import AnnouncementsView from './AnnouncementsView';
+import TimetablePage from './TimetablePage';
+import AssignmentsPage from './AssignmentsPage';
 
 export default function TeacherHomePage({ username, onLogout }) {
   const [teacherData, setTeacherData] = useState(null);
@@ -84,6 +86,22 @@ export default function TeacherHomePage({ username, onLogout }) {
     />;
   }
 
+  if (currentPage === 'Timetable') {
+    return <TimetablePage 
+      onBack={handleBack} 
+      userRole="teacher" 
+      classId={teacherData?.assigned_class} 
+    />;
+  }
+
+  if (currentPage === 'Assignments') {
+    return <AssignmentsPage 
+      onBack={handleBack} 
+      userRole="teacher" 
+      teacherData={teacherData}
+    />;
+  }
+
   return (
     <View style={styles.container}>
       {showNotification && unreadAnnouncements > 0 && (
@@ -134,9 +152,9 @@ export default function TeacherHomePage({ username, onLogout }) {
         
         <TouchableOpacity 
           style={styles.box} 
-          onPress={() => handleNavigation('Settings')}
+          onPress={() => handleNavigation('Timetable')}
         >
-          <Text style={styles.boxText}>Settings</Text>
+          <Text style={styles.boxText}>Timetable</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 

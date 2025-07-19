@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     color: '#4a90e2',
     marginRight: 20,
     fontWeight: '600',
-    left: -105,
+    left: -104,
   },
   title: {
     fontSize: 20,

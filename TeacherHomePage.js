@@ -156,7 +156,7 @@ export default function TeacherHomePage({ username, onLogout }) {
           style={styles.box} 
           onPress={() => handleNavigation('Announcements')}
         >
-          <Text style={styles.boxText}>Messages</Text>
+          <Text style={styles.boxText}>Announcements</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 

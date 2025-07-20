@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, Alert, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { supabase } from './supabase';
 
 export default function ConversationView({ onBack, userRole, userData, conversationId, recipientId, recipientName }) {
@@ -103,7 +103,10 @@ export default function ConversationView({ onBack, userRole, userData, conversat
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={10}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack}>
           <Text style={styles.backButton}>← Back</Text>
@@ -139,7 +142,7 @@ export default function ConversationView({ onBack, userRole, userData, conversat
           <Text style={styles.sendButtonText}>Send</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -148,7 +151,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     paddingTop: 60,
-    paddingHorizontal: 150,
+    paddingHorizontal: 24,
+    paddingBottom: 0,
   },
   header: {
     flexDirection: 'row',
@@ -163,20 +167,20 @@ const styles = StyleSheet.create({
     color: '#4a90e2',
     marginRight: 20,
     fontWeight: '600',
-    left: -104,
   },
   title: {
     fontSize: 20,
     fontWeight: '600',
     color: '#333',
-    left:-90
+    flex: 1,
   },
   messagesList: {
     flex: 1,
   },
   messageContainer: {
     marginBottom: 15,
-    flexDirection: 'column',
+    flexDirection: 'row',
+    width: '100%',
   },
   sentMessage: {
     justifyContent: 'flex-end',
@@ -224,7 +228,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: '#eee',
-    paddingVertical: 12,
+    paddingVertical: 8,
     paddingHorizontal: 8,
     backgroundColor: '#fff',
   },
@@ -233,8 +237,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 24,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    paddingHorizontal: 9,
+    paddingVertical: 15,
     maxHeight: 120,
     backgroundColor: '#f9f9f9',
     fontSize: 16,

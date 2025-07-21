@@ -11,7 +11,7 @@ export default function TimetablePage({ onBack, userRole, classId }) {
   const [lessonData, setLessonData] = useState({
     subject: '',
     teacher: '',
-    room: '',
+    time: '',
   });
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
@@ -45,7 +45,7 @@ export default function TimetablePage({ onBack, userRole, classId }) {
               period,
               subject: periodData?.subject || '',
               teacher: periodData?.teacher || '',
-              room: periodData?.room || '',
+              time_frame: periodData?.time_frame || '',
               id: periodData?.id || null
             };
           })
@@ -60,16 +60,45 @@ export default function TimetablePage({ onBack, userRole, classId }) {
     }
   };
 
-  const handleAddLesson = (day, period) => {
+  const handleAddLesson = async (day, period) => {
     if (userRole !== 'teacher') return;
     
     setSelectedDay(day);
     setSelectedPeriod(period);
-    setLessonData({
-      subject: '',
-      teacher: '',
-      room: '',
-    });
+    
+    try {
+      // Get teacher data to pre-fill subject
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: teacherData, error } = await supabase
+          .from('teachers')
+          .select('name, subject')
+          .eq('email', user.email)
+          .single();
+        
+        if (!error && teacherData) {
+          setLessonData({
+            subject: teacherData.subject || '',
+            teacher: teacherData.name || '',
+            time: '',
+          });
+        } else {
+          setLessonData({
+            subject: '',
+            teacher: '',
+            time: '',
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching teacher data:', error);
+      setLessonData({
+        subject: '',
+        teacher: '',
+        time: '',
+      });
+    }
+    
     setModalVisible(true);
   };
 
@@ -91,7 +120,7 @@ export default function TimetablePage({ onBack, userRole, classId }) {
           .update({
             subject: lessonData.subject,
             teacher: lessonData.teacher,
-            room: lessonData.room,
+            time_frame: lessonData.time,
           })
           .eq('id', existingLesson.id);
         
@@ -109,7 +138,7 @@ export default function TimetablePage({ onBack, userRole, classId }) {
             period: selectedPeriod,
             subject: lessonData.subject,
             teacher: lessonData.teacher,
-            room: lessonData.room,
+            time_frame: lessonData.time,
           }]);
         
         if (error) {
@@ -147,7 +176,7 @@ export default function TimetablePage({ onBack, userRole, classId }) {
             <View style={styles.lessonInfo}>
               <Text style={styles.subjectText}>{period.subject}</Text>
               <Text style={styles.teacherText}>Teacher: {period.teacher}</Text>
-              {period.room && <Text style={styles.roomText}>Room: {period.room}</Text>}
+              {period.time_frame && <Text style={styles.timeFrameText}>Time: {period.time_frame}</Text>}
             </View>
           ) : (
             <Text style={styles.emptyPeriod}>
@@ -208,9 +237,9 @@ export default function TimetablePage({ onBack, userRole, classId }) {
               
               <TextInput
                 style={styles.input}
-                placeholder="Room (optional)"
-                value={lessonData.room}
-                onChangeText={(text) => setLessonData({...lessonData, room: text})}
+                placeholder="Time (e.g., 9:00 - 10:30) *"
+                value={lessonData.time}
+                onChangeText={(text) => setLessonData({...lessonData, time: text})}
               />
               
               <View style={styles.modalButtons}>
@@ -317,7 +346,7 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 3,
   },
-  roomText: {
+  timeFrameText: {
     fontSize: 14,
     color: '#666',
   },

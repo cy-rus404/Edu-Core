@@ -49,6 +49,25 @@ export default function ConversationView({ onBack, userRole, userData, conversat
     }
   };
 
+  const deleteMessage = async (messageId) => {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .delete()
+        .eq('id', messageId);
+      
+      if (error) {
+        Alert.alert('Error', error.message);
+        return;
+      }
+      
+      // Update local state
+      setMessages(messages.filter(msg => msg.id !== messageId));
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete message');
+    }
+  };
+
   const sendMessage = async () => {
     if (!replyText.trim()) {
       Alert.alert('Error', 'Please enter a message');
@@ -82,10 +101,22 @@ export default function ConversationView({ onBack, userRole, userData, conversat
     const isCurrentUser = item.sender_id === userData.id;
     
     return (
-      <View style={[
-        styles.messageContainer,
-        isCurrentUser ? styles.sentMessage : styles.receivedMessage
-      ]}>
+      <TouchableOpacity 
+        style={[
+          styles.messageContainer,
+          isCurrentUser ? styles.sentMessage : styles.receivedMessage
+        ]}
+        onLongPress={() => {
+          Alert.alert(
+            'Delete Message',
+            'Do you want to delete this message?',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Delete', onPress: () => deleteMessage(item.id), style: 'destructive' }
+            ]
+          );
+        }}
+      >
         <View style={[
           styles.messageBubble,
           isCurrentUser ? styles.sentBubble : styles.receivedBubble
@@ -98,7 +129,7 @@ export default function ConversationView({ onBack, userRole, userData, conversat
             {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -114,18 +145,21 @@ export default function ConversationView({ onBack, userRole, userData, conversat
         <Text style={styles.title}>Conversation with {recipientName}</Text>
       </View>
       
-      <FlatList
-        data={messages}
-        renderItem={renderMessageItem}
-        keyExtractor={(item) => item.id.toString()}
-        style={styles.messagesList}
-        inverted={false}
-        refreshing={loading}
-        onRefresh={fetchMessages}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>No messages yet. Start the conversation!</Text>
-        }
-      />
+      <View style={{flex: 1}}>
+        <Text style={styles.deleteHint}>Long press any message to delete</Text>
+        <FlatList
+          data={messages}
+          renderItem={renderMessageItem}
+          keyExtractor={(item) => item.id.toString()}
+          style={styles.messagesList}
+          inverted={false}
+          refreshing={loading}
+          onRefresh={fetchMessages}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>No messages yet. Start the conversation!</Text>
+          }
+        />
+      </View>
       
       <View style={styles.inputContainer}>
         <TextInput
@@ -229,7 +263,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#eee',
     paddingVertical: 8,
-    paddingHorizontal: 8,
     backgroundColor: '#fff',
   },
   input: {
@@ -237,7 +270,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 24,
-    paddingHorizontal: 9,
+    paddingHorizontal: 8,
     paddingVertical: 15,
     maxHeight: 120,
     backgroundColor: '#f9f9f9',
@@ -265,5 +298,12 @@ const styles = StyleSheet.create({
     color: '#666',
     fontStyle: 'italic',
     marginTop: 40,
+  },
+  deleteHint: {
+    textAlign: 'center',
+    color: '#999',
+    fontSize: 12,
+    fontStyle: 'italic',
+    marginBottom: 8,
   },
 });

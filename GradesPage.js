@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: '600',
+    fontWeight: '602',
     color: '#333',
   },
   classInfo: {

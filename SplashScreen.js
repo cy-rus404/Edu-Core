@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { responsiveScreenFontSize } from './responsive';
 
 export default function SplashScreen() {
   return (

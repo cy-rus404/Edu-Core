@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, Animated } from 'react-native';
+import { StyleSheet, View, Animated, SafeAreaView } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
+import { getResponsiveHeight } from './responsive';
 import LoginScreen from './LoginScreen';
 import SplashScreen from './SplashScreen';
 import HomePage from './HomePage';
@@ -73,12 +74,12 @@ export default function App() {
   };
 
   return (
-    <View style={[styles.container, showSplash && styles.splashContainer]}>
+    <SafeAreaView style={[styles.container, showSplash && styles.splashContainer]}>
       <Animated.View style={[{ flex: 1 }, { opacity: fadeAnim }]}>
         {renderScreen()}
       </Animated.View>
       <StatusBar style="auto" />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -86,8 +87,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   splashContainer: {
     backgroundColor: '#4a90e2',

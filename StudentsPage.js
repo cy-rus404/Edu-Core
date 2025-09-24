@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, ScrollView, Alert, Image, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, ScrollView, Alert, Image, FlatList, SafeAreaView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from './supabase';
+import { getResponsiveWidth, isVerySmallScreen } from './responsive';
 
 export default function StudentsPage({ onBack }) {
   const [searchText, setSearchText] = useState('');
@@ -207,9 +208,9 @@ export default function StudentsPage({ onBack }) {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack}>
+        <TouchableOpacity style={styles.backButtonContainer} onPress={onBack}>
           <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Students</Text>
@@ -448,7 +449,7 @@ export default function StudentsPage({ onBack }) {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -456,23 +457,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: 60,
-    paddingHorizontal: 24,
+    paddingHorizontal: getResponsiveWidth(6),
+    paddingTop: 10,
   },
   header: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 30,
+    justifyContent: 'center',
+    marginBottom: 20,
+    position: 'relative',
+  },
+  backButtonContainer: {
+    position: 'absolute',
+    left: 0,
+    zIndex: 1,
   },
   backButton: {
     fontSize: 18,
     color: '#4a90e2',
-    position: 'absolute',
-    top: 5,
-    left: -185,
-    zIndex: 1,
   },
   title: {
-    fontSize: 24,
+    fontSize: isVerySmallScreen() ? 20 : 24,
     fontWeight: '600',
     color: '#333',
   },
@@ -480,11 +485,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 12,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    fontSize: 16,
+    paddingVertical: isVerySmallScreen() ? 12 : 15,
+    paddingHorizontal: 16,
+    fontSize: isVerySmallScreen() ? 14 : 16,
     marginBottom: 20,
-    width:350
+    marginHorizontal: 4,
   },
   addButton: {
     position: 'absolute',

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions, ScrollView, SafeAreaView } from 'react-native';
 import { supabase } from './supabase';
+import { normalize, getResponsiveWidth, getResponsiveHeight, responsiveScreenFontSize, isSmallScreen, isVerySmallScreen } from './responsive';
 import StudentsPage from './StudentsPage';
 import TeachersPage from './TeachersPage';
 import AnnouncementsPage from './AnnouncementsPage';
@@ -74,39 +75,45 @@ export default function AdminHomePage({ onLogout }) {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.welcome}>Welcome Admin 👋</Text>
-      
-      <View style={styles.gridContainer}>
-        <TouchableOpacity style={styles.box} onPress={() => handleNavigation('Students')}>
-          <Text style={styles.boxText}>Students</Text>
-        </TouchableOpacity>
+    <SafeAreaView style={styles.container}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.welcome}>Welcome Admin 👋</Text>
         
-        <TouchableOpacity style={styles.box} onPress={() => handleNavigation('Teachers')}>
-          <Text style={styles.boxText}>Teachers</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.box} onPress={() => handleNavigation('Classes')}>
-          <Text style={styles.boxText}>Classes</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.box} onPress={() => handleNavigation('Announcements')}>
-          <Text style={styles.boxText}>Announcements</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.box} onPress={() => handleNavigation('Reports')}>
-          <Text style={styles.boxText}>Reports</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.box} onPress={() => handleNavigation('Settings')}>
-          <Text style={styles.boxText}>Settings</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={[styles.box, styles.logoutBox]} onPress={onLogout}>
-          <Text style={[styles.boxText, styles.logoutText]}>Log Out</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+        <View style={styles.gridContainer}>
+          <TouchableOpacity style={styles.box} onPress={() => handleNavigation('Students')}>
+            <Text style={styles.boxText}>Students</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.box} onPress={() => handleNavigation('Teachers')}>
+            <Text style={styles.boxText}>Teachers</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.box} onPress={() => handleNavigation('Classes')}>
+            <Text style={styles.boxText}>Classes</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.box} onPress={() => handleNavigation('Announcements')}>
+            <Text style={styles.boxText}>Announcements</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.box} onPress={() => handleNavigation('Reports')}>
+            <Text style={styles.boxText}>Reports</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.box} onPress={() => handleNavigation('Settings')}>
+            <Text style={styles.boxText}>Settings</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={[styles.box, styles.logoutBox]} onPress={onLogout}>
+            <Text style={[styles.boxText, styles.logoutText]}>Log Out</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -114,35 +121,42 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: 60,
-    paddingHorizontal: 24,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: getResponsiveWidth(6),
+    paddingTop: getResponsiveHeight(2),
+    paddingBottom: getResponsiveHeight(3),
   },
   welcome: {
-    fontSize: 24,
+    fontSize: isVerySmallScreen() ? 22 : 26,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 40,
+    marginBottom: isVerySmallScreen() ? 20 : 30,
   },
   gridContainer: {
-    flex: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignContent: 'flex-start',
   },
   box: {
-    width: '48%',
-    height: 120,
+    width: isSmallScreen() ? '100%' : '48%',
+    height: isVerySmallScreen() ? 80 : 120,
     backgroundColor: '#4a90e2',
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: isVerySmallScreen() ? 12 : 20,
+    paddingHorizontal: 12,
   },
   boxText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: isVerySmallScreen() ? 16 : 18,
     fontWeight: '600',
+    textAlign: 'center',
   },
   logoutBox: {
     backgroundColor: '#ff4757',

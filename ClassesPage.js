@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, SafeAreaView } from 'react-native';
 import { supabase } from './supabase';
+import { getResponsiveWidth, isVerySmallScreen } from './responsive';
 
 export default function ClassesPage({ onBack }) {
   const [classData, setClassData] = useState([]);
@@ -82,9 +83,9 @@ export default function ClassesPage({ onBack }) {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack}>
+        <TouchableOpacity style={styles.backButtonContainer} onPress={onBack}>
           <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Classes</Text>
@@ -97,10 +98,10 @@ export default function ClassesPage({ onBack }) {
         contentContainerStyle={styles.listContent}
         refreshing={loading}
         onRefresh={fetchClassData}
-        numColumns={2}
-        columnWrapperStyle={styles.columnWrapper}
+        numColumns={isVerySmallScreen() ? 1 : 2}
+        columnWrapperStyle={!isVerySmallScreen() ? styles.columnWrapper : null}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -108,23 +109,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: 60,
-    paddingHorizontal: 24,
+    paddingHorizontal: getResponsiveWidth(6),
+    paddingTop: 10,
   },
   header: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 30,
+    justifyContent: 'center',
+    marginBottom: 20,
+    position: 'relative',
+  },
+  backButtonContainer: {
+    position: 'absolute',
+    left: 0,
+    zIndex: 1,
   },
   backButton: {
     fontSize: 18,
     color: '#4a90e2',
-    position: 'absolute',
-    top: 5,
-    left: -185,
-    zIndex: 1,
   },
   title: {
-    fontSize: 24,
+    fontSize: isVerySmallScreen() ? 20 : 24,
     fontWeight: '600',
     color: '#333',
   },
@@ -137,17 +142,17 @@ const styles = StyleSheet.create({
   classCard: {
     backgroundColor: '#f9f9f9',
     borderRadius: 12,
-    padding: 15,
+    padding: isVerySmallScreen() ? 12 : 15,
     marginBottom: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 2,
-    width: '48%',
+    width: isVerySmallScreen() ? '100%' : '48%',
   },
   className: {
-    fontSize: 18,
+    fontSize: isVerySmallScreen() ? 16 : 18,
     fontWeight: '600',
     color: '#333',
     marginBottom: 15,

@@ -35,7 +35,7 @@ export default function SplashScreen() {
         ]}
       >
         <Text style={styles.title}>🎓 EDUCORE 📚</Text>
-        <Text style={styles.subtitle}>Learning Made Fun</Text>
+        <Text style={styles.subtitle}>Learning Made Fun!</Text>
       </Animated.View>
     </View>
   );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, ScrollView, Alert, Image, FlatList, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, ScrollView, Alert, Image, FlatList, SafeAreaView, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from './supabase';
 import { getResponsiveWidth, isVerySmallScreen } from './responsive';
 
@@ -13,6 +14,7 @@ export default function TeachersPage({ onBack }) {
   const [teacherData, setTeacherData] = useState({
     name: '',
     age: '',
+    dob: '',
     subject: '',
     assignedClass: 'Creche',
     email: '',
@@ -20,6 +22,8 @@ export default function TeachersPage({ onBack }) {
     gender: 'male',
     image: null
   });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   const classes = [
     'Creche', 'Nursery', 'KG1', 'KG2', 'Class 1', 'Class 2', 'Class 3', 
@@ -28,7 +32,64 @@ export default function TeachersPage({ onBack }) {
 
   useEffect(() => {
     fetchTeachers();
+    createDefaultTeacher();
   }, []);
+
+  const createDefaultTeacher = async () => {
+    try {
+      // Check if default teacher already exists
+      const { data: existingTeacher } = await supabase
+        .from('teachers')
+        .select('email')
+        .eq('email', 't@mail.com')
+        .single();
+      
+      if (existingTeacher) {
+        console.log('Default teacher already exists');
+        return;
+      }
+      
+      // Create auth user
+      const { error: authError } = await supabase.auth.signUp({
+        email: 't@mail.com',
+        password: '123456',
+        options: {
+          data: {
+            role: 'teacher'
+          }
+        }
+      });
+      
+      if (authError && !authError.message.includes('already registered')) {
+        console.error('Auth error creating default teacher:', authError);
+        return;
+      }
+      
+      // Insert teacher data
+      const { error } = await supabase
+        .from('teachers')
+        .insert([
+          {
+            name: 'Default Teacher',
+            age: 30,
+            subject: 'General',
+            email: 't@mail.com',
+            gender: 'male',
+            assigned_class: 'Creche',
+            teacher_id: '2001',
+            image: null
+          }
+        ]);
+      
+      if (error) {
+        console.error('Error creating default teacher:', error);
+      } else {
+        console.log('Default teacher created successfully');
+      }
+    } catch (error) {
+      console.error('Error in createDefaultTeacher:', error);
+    }
+  };
 
   const fetchTeachers = async () => {
     try {
@@ -75,9 +136,27 @@ export default function TeachersPage({ onBack }) {
 
   const handleSaveTeacher = async () => {
     try {
-      const autoId = 2001 + teachers.length;
+      console.log('Starting teacher creation process...');
+      console.log('Teacher data:', teacherData);
       
-      const { error: authError } = await supabase.auth.signUp({
+      // Check if email already exists
+      const { data: existingTeacher, error: checkError } = await supabase
+        .from('teachers')
+        .select('email')
+        .eq('email', teacherData.email)
+        .single();
+      
+      if (existingTeacher) {
+        Alert.alert('Error', 'A teacher with this email already exists. Please use a different email.');
+        return;
+      }
+      
+      const autoId = 2001 + teachers.length;
+      console.log('Generated teacher ID:', autoId);
+      
+      // Create auth user
+      console.log('Creating auth user...');
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: teacherData.email,
         password: teacherData.password,
         options: {
@@ -88,10 +167,15 @@ export default function TeachersPage({ onBack }) {
       });
       
       if (authError) {
+        console.error('Auth error:', authError);
         Alert.alert('Error', authError.message);
         return;
       }
+      
+      console.log('Auth user created:', authData);
 
+      // Insert teacher data
+      console.log('Inserting teacher data...');
       const { data, error } = await supabase
         .from('teachers')
         .insert([
@@ -109,13 +193,16 @@ export default function TeachersPage({ onBack }) {
         .select();
       
       if (error) {
+        console.error('Database insert error:', error);
         Alert.alert('Error', error.message);
       } else {
+        console.log('Teacher inserted successfully:', data);
         Alert.alert('Success', 'Teacher added successfully!');
         setModalVisible(false);
         setTeacherData({
           name: '',
           age: '',
+          dob: '',
           subject: '',
           assignedClass: 'Creche',
           email: '',
@@ -126,7 +213,8 @@ export default function TeachersPage({ onBack }) {
         fetchTeachers();
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to add teacher');
+      console.error('Unexpected error in handleSaveTeacher:', error);
+      Alert.alert('Error', 'Failed to add teacher: ' + error.message);
     }
   };
 
@@ -152,6 +240,41 @@ export default function TeachersPage({ onBack }) {
         <Text style={styles.teacherDetails}>Subject: {item.subject}</Text>
         <Text style={styles.teacherDetails}>Class: {item.assigned_class}</Text>
       </View>
+      <TouchableOpacity 
+        style={styles.deleteButtonCard}
+        onPress={() => {
+          Alert.alert(
+            'Delete Teacher',
+            `Are you sure you want to delete ${item.name}?`,
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { 
+                text: 'Delete', 
+                onPress: async () => {
+                  try {
+                    const { error } = await supabase
+                      .from('teachers')
+                      .delete()
+                      .eq('id', item.id);
+                    
+                    if (error) {
+                      Alert.alert('Error', error.message);
+                    } else {
+                      Alert.alert('Success', 'Teacher deleted successfully');
+                      fetchTeachers();
+                    }
+                  } catch (error) {
+                    Alert.alert('Error', 'Failed to delete teacher');
+                  }
+                },
+                style: 'destructive'
+              }
+            ]
+          );
+        }}
+      >
+        <Text style={styles.deleteButtonCardText}>🗑️</Text>
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 
@@ -217,10 +340,35 @@ export default function TeachersPage({ onBack }) {
               <TextInput
                 style={styles.input}
                 placeholder="Age"
-                keyboardType="numeric"
+                keyboardType="number-pad"
                 value={teacherData.age}
-                onChangeText={(text) => setTeacherData({...teacherData, age: text})}
+                onChangeText={(text) => setTeacherData({...teacherData, age: text.replace(/[^0-9]/g, '')})}
               />
+              
+              <TouchableOpacity 
+                style={styles.datePickerButton}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text style={styles.datePickerText}>
+                  {teacherData.dob || 'Select Date of Birth'}
+                </Text>
+              </TouchableOpacity>
+              
+              {showDatePicker && (
+                <DateTimePicker
+                  value={selectedDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, date) => {
+                    setShowDatePicker(Platform.OS === 'ios');
+                    if (date) {
+                      setSelectedDate(date);
+                      const formattedDate = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+                      setTeacherData({...teacherData, dob: formattedDate});
+                    }
+                  }}
+                />
+              )}
               
               <TextInput
                 style={styles.input}
@@ -350,6 +498,8 @@ export default function TeachersPage({ onBack }) {
                   <Text style={styles.detailLabel}>Age:</Text>
                   <Text style={styles.detailValue}>{selectedTeacher.age}</Text>
                 </View>
+                
+
               </ScrollView>
             )}
             
@@ -679,5 +829,34 @@ const styles = StyleSheet.create({
   selectedClassText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  datePickerButton: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingVertical: 15,
+    paddingHorizontal: 16,
+    marginBottom: 15,
+    justifyContent: 'center',
+    minHeight: 50,
+  },
+  datePickerText: {
+    fontSize: 16,
+    color: '#333',
+    textAlign: 'left',
+  },
+  deleteButtonCard: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 30,
+    height: 30,
+    backgroundColor: '#ff4757',
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteButtonCardText: {
+    fontSize: 16,
   },
 });

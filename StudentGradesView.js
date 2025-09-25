@@ -27,6 +27,14 @@ export default function StudentGradesView({ onBack, studentData }) {
         .order('created_at', { ascending: false });
       
       if (error) {
+        // Handle missing grades table error
+        if (error.code === 'PGRST205') {
+          console.log('Grades table not found - no grades available yet');
+          setGrades([]);
+          setSubjects(['All']);
+          setLoading(false);
+          return;
+        }
         console.error('Error fetching grades:', error);
         return;
       }
@@ -68,6 +76,28 @@ export default function StudentGradesView({ onBack, studentData }) {
     ? grades 
     : grades.filter(grade => grade.subject === selectedSubject);
 
+  const calculateOverallGrade = () => {
+    if (grades.length === 0) return { score: 0, grade: 'N/A' };
+    
+    const totalScore = grades.reduce((sum, grade) => sum + grade.score, 0);
+    const averageScore = Math.round(totalScore / grades.length);
+    const finalGrade = getGradeFromScore(averageScore);
+    
+    return { score: averageScore, grade: finalGrade };
+  };
+
+  const getGradeFromScore = (score) => {
+    const numScore = Number(score);
+    if (numScore >= 75) return 'A';
+    if (numScore >= 65) return 'B';
+    if (numScore >= 55) return 'C';
+    if (numScore >= 45) return 'D';
+    if (numScore >= 35) return 'E';
+    return 'F';
+  };
+
+  const overallGrade = calculateOverallGrade();
+
   const renderGradeItem = ({ item }) => (
     <View style={styles.gradeItem}>
       <View style={styles.gradeHeader}>
@@ -92,6 +122,18 @@ export default function StudentGradesView({ onBack, studentData }) {
         </TouchableOpacity>
         <Text style={styles.title}>My Grades</Text>
       </View>
+
+      {grades.length > 0 && (
+        <View style={styles.finalGradeContainer}>
+          <Text style={styles.finalGradeTitle}>🏆 My Final Grade</Text>
+          <View style={styles.finalGradeContent}>
+            <Text style={styles.finalGradeScore}>Overall Average: {overallGrade.score}%</Text>
+            <View style={[styles.finalGradeLabel, getGradeColor(overallGrade.grade)]}>
+              <Text style={styles.finalGradeLabelText}>{overallGrade.grade}</Text>
+            </View>
+          </View>
+        </View>
+      )}
 
       <View style={styles.filterContainer}>
         <Text style={styles.filterLabel}>Filter by Subject:</Text>
@@ -259,5 +301,47 @@ const styles = StyleSheet.create({
     color: '#666',
     fontStyle: 'italic',
     marginTop: 40,
+  },
+  finalGradeContainer: {
+    backgroundColor: '#f0f8ff',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    borderLeftWidth: 5,
+    borderLeftColor: '#4a90e2',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  finalGradeTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  finalGradeContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  finalGradeScore: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  finalGradeLabel: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  finalGradeLabelText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 24,
   },
 });

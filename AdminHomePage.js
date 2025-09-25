@@ -6,6 +6,8 @@ import StudentsPage from './StudentsPage';
 import TeachersPage from './TeachersPage';
 import AnnouncementsPage from './AnnouncementsPage';
 import ClassesPage from './ClassesPage';
+import ReportsPage from './ReportsPage';
+import SettingsPage from './SettingsPage';
 
 export default function AdminHomePage({ onLogout }) {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -49,6 +51,10 @@ export default function AdminHomePage({ onLogout }) {
       setCurrentPage('classes');
     } else if (page === 'Announcements') {
       setCurrentPage('Announcements');
+    } else if (page === 'Reports') {
+      setCurrentPage('reports');
+    } else if (page === 'Settings') {
+      setCurrentPage('settings');
     } else {
       console.log(`Navigate to ${page}`);
     }
@@ -72,6 +78,14 @@ export default function AdminHomePage({ onLogout }) {
 
   if (currentPage === 'classes') {
     return <ClassesPage onBack={handleBack} />;
+  }
+
+  if (currentPage === 'reports') {
+    return <ReportsPage onBack={handleBack} />;
+  }
+
+  if (currentPage === 'settings') {
+    return <SettingsPage onBack={handleBack} />;
   }
 
   return (

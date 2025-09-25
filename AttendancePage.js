@@ -48,6 +48,11 @@ export default function AttendancePage({ onBack, teacherClass }) {
         .eq('date', dateString);
       
       if (error) {
+        if (error.code === 'PGRST205') {
+          console.log('Attendance table not found - using empty attendance');
+          setAttendance({});
+          return;
+        }
         console.error('Error fetching attendance:', error);
         return;
       }
@@ -61,6 +66,7 @@ export default function AttendancePage({ onBack, teacherClass }) {
       setAttendance(attendanceMap);
     } catch (error) {
       console.error('Error fetching attendance:', error);
+      setAttendance({});
     }
   };
 
@@ -75,6 +81,11 @@ export default function AttendancePage({ onBack, teacherClass }) {
         .eq('student_id', studentId)
         .eq('date', dateString)
         .single();
+      
+      if (fetchError && fetchError.code === 'PGRST205') {
+        Alert.alert('Error', 'Attendance table not found. Please contact administrator.');
+        return;
+      }
       
       if (fetchError && fetchError.code !== 'PGRST116') { // Not found error
         Alert.alert('Error', fetchError.message);

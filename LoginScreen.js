@@ -22,27 +22,69 @@ export default function LoginScreen({ onLogin }) {
   const handleLogin = async () => {
     setLoading(true);
     
-    // Only allow specific admin credentials
-    if (role === "admin") {
-      if (email === "admin@educore.com" && password === "admin123") {
-        onLogin("admin", "admin");
-      } else {
-        Alert.alert("Error", "Invalid admin credentials");
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        Alert.alert("Error", error.message);
+        setLoading(false);
+        return;
       }
-      setLoading(false);
-      return;
-    }
-    
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) {
-      Alert.alert("Error", error.message);
-    } else {
+
+      // Check user role based on email and database
+      let userRole = role;
       const username = email.split('@')[0];
-      onLogin(username, role);
+      
+      if (role === "admin") {
+        // Verify admin user exists in admin_users table
+        const { data: adminData, error: adminError } = await supabase
+          .from('admin_users')
+          .select('*')
+          .eq('email', email)
+          .single();
+        
+        if (adminError || !adminData) {
+          Alert.alert("Error", "You are not authorized as an admin");
+          await supabase.auth.signOut();
+          setLoading(false);
+          return;
+        }
+      } else if (role === "student") {
+        // Verify student exists in students table
+        const { data: studentData, error: studentError } = await supabase
+          .from('students')
+          .select('*')
+          .eq('email', email)
+          .single();
+        
+        if (studentError || !studentData) {
+          Alert.alert("Error", "Student account not found. Please contact admin.");
+          await supabase.auth.signOut();
+          setLoading(false);
+          return;
+        }
+      } else if (role === "teacher") {
+        // Verify teacher exists in teachers table
+        const { data: teacherData, error: teacherError } = await supabase
+          .from('teachers')
+          .select('*')
+          .eq('email', email)
+          .single();
+        
+        if (teacherError || !teacherData) {
+          Alert.alert("Error", "Teacher account not found. Please contact admin.");
+          await supabase.auth.signOut();
+          setLoading(false);
+          return;
+        }
+      }
+      
+      onLogin(username, userRole);
+    } catch (error) {
+      Alert.alert("Error", "Login failed. Please try again.");
     }
     
     setLoading(false);
@@ -133,7 +175,7 @@ const styles = StyleSheet.create({
         marginBottom: getResponsiveHeight(4),
         fontWeight: '600',
         textAlign: 'center',
-        color: '#333'
+        color: '#667eea'
     },
     input: {
         width: getResponsiveWidth(85),
@@ -150,11 +192,16 @@ const styles = StyleSheet.create({
     button: {
         width: getResponsiveWidth(70),
         maxWidth: 300,
-        backgroundColor: '#4a90e2',
+        backgroundColor: '#667eea',
         paddingVertical: normalize(16),
-        borderRadius: normalize(12),
+        borderRadius: normalize(25),
         alignItems: 'center',
-        marginTop: getResponsiveHeight(4)
+        marginTop: getResponsiveHeight(4),
+        shadowColor: '#667eea',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
     },
     buttonText: {
         color: '#fff',
@@ -192,8 +239,8 @@ const styles = StyleSheet.create({
         marginVertical: normalize(4)
     },
     selectedRole: {
-        backgroundColor: '#4a90e2',
-        borderColor: '#4a90e2'
+        backgroundColor: '#667eea',
+        borderColor: '#667eea'
     },
     roleText: {
         fontSize: 16,

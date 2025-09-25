@@ -6,6 +6,7 @@ export default function ConversationView({ onBack, userRole, userData, conversat
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [replyText, setReplyText] = useState('');
+  const [notification, setNotification] = useState(null);
 
   useEffect(() => {
     fetchMessages();
@@ -19,9 +20,20 @@ export default function ConversationView({ onBack, userRole, userData, conversat
         table: 'messages',
         filter: `conversation_id=eq.${conversationId}`
       }, payload => {
-        setMessages(current => [...current, payload.new]);
+        console.log('New message received:', payload.new);
+        const newMessage = payload.new;
+        setMessages(current => [...current, newMessage]);
+        
+        // Show notification if message is from someone else
+        if (newMessage.sender_id !== userData.id) {
+          console.log('Showing notification for message from:', newMessage.sender_name);
+          setNotification(`New message from ${newMessage.sender_name}`);
+          setTimeout(() => setNotification(null), 3000);
+        }
       })
       .subscribe();
+      
+    console.log('Subscription status:', subscription);
       
     return () => {
       subscription.unsubscribe();
@@ -75,6 +87,14 @@ export default function ConversationView({ onBack, userRole, userData, conversat
     }
 
     try {
+      console.log('Sending message:', {
+        conversation_id: conversationId,
+        sender_id: userData.id,
+        sender_name: userData.name,
+        sender_role: userRole,
+        message: replyText
+      });
+      
       const { data, error } = await supabase
         .from('messages')
         .insert([{
@@ -82,45 +102,48 @@ export default function ConversationView({ onBack, userRole, userData, conversat
           sender_id: userData.id,
           sender_name: userData.name,
           sender_role: userRole,
-          message: replyText,
-          created_at: new Date()
-        }]);
+          message: replyText
+        }])
+        .select();
       
       if (error) {
+        console.error('Send message error:', error);
         Alert.alert('Error', error.message);
         return;
       }
 
+      console.log('Message sent successfully:', data);
       setReplyText('');
     } catch (error) {
+      console.error('Send message catch error:', error);
       Alert.alert('Error', 'Failed to send message');
     }
   };
 
   const renderMessageItem = ({ item }) => {
-    const isCurrentUser = item.sender_id === userData.id;
+    const isCurrentUser = item.sender_id === userData.id && item.sender_name === userData.name;
     
     return (
-      <TouchableOpacity 
-        style={[
-          styles.messageContainer,
-          isCurrentUser ? styles.sentMessage : styles.receivedMessage
-        ]}
-        onLongPress={() => {
-          Alert.alert(
-            'Delete Message',
-            'Do you want to delete this message?',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Delete', onPress: () => deleteMessage(item.id), style: 'destructive' }
-            ]
-          );
-        }}
-      >
-        <View style={[
-          styles.messageBubble,
-          isCurrentUser ? styles.sentBubble : styles.receivedBubble
-        ]}>
+      <View style={[
+        styles.messageContainer,
+        isCurrentUser ? styles.sentMessage : styles.receivedMessage
+      ]}>
+        <TouchableOpacity 
+          style={[
+            styles.messageBubble,
+            isCurrentUser ? styles.sentBubble : styles.receivedBubble
+          ]}
+          onLongPress={() => {
+            Alert.alert(
+              'Delete Message',
+              'Do you want to delete this message?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Delete', onPress: () => deleteMessage(item.id), style: 'destructive' }
+              ]
+            );
+          }}
+        >
           {!isCurrentUser && (
             <Text style={styles.senderName}>{item.sender_name}</Text>
           )}
@@ -128,8 +151,8 @@ export default function ConversationView({ onBack, userRole, userData, conversat
           <Text style={styles.messageTime}>
             {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </View>
     );
   };
 
@@ -144,6 +167,12 @@ export default function ConversationView({ onBack, userRole, userData, conversat
         </TouchableOpacity>
         <Text style={styles.title}>Conversation with {recipientName}</Text>
       </View>
+      
+      {notification && (
+        <View style={styles.notification}>
+          <Text style={styles.notificationText}>💬 {notification}</Text>
+        </View>
+      )}
       
       <View style={{flex: 1}}>
         <Text style={styles.deleteHint}>Long press any message to delete</Text>
@@ -213,14 +242,13 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     marginBottom: 15,
-    flexDirection: 'row',
     width: '100%',
   },
   sentMessage: {
-    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
   },
   receivedMessage: {
-    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
   },
   messageBubble: {
     maxWidth: '80%',
@@ -305,5 +333,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontStyle: 'italic',
     marginBottom: 8,
+  },
+  notification: {
+    backgroundColor: '#4a90e2',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  notificationText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, ScrollView, Alert, Image, FlatList, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, ScrollView, Alert, Image, FlatList, SafeAreaView, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from './supabase';
 import { getResponsiveWidth, isVerySmallScreen } from './responsive';
 
@@ -9,6 +10,7 @@ export default function StudentsPage({ onBack }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [showStudentDetails, setShowStudentDetails] = useState(false);
   const [students, setStudents] = useState([]);
   const [studentData, setStudentData] = useState({
     name: '',
@@ -25,6 +27,8 @@ export default function StudentsPage({ onBack }) {
     studentId: '',
     image: null
   });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   const classes = [
     'Creche', 'Nursery', 'KG1', 'KG2', 'Class 1', 'Class 2', 'Class 3', 
@@ -155,7 +159,7 @@ export default function StudentsPage({ onBack }) {
 
   const handleStudentPress = (student) => {
     setSelectedStudent(student);
-    setDetailsModalVisible(true);
+    setShowStudentDetails(true);
   };
 
   const handleDeleteStudent = async () => {
@@ -203,8 +207,111 @@ export default function StudentsPage({ onBack }) {
         <Text style={styles.studentName}>{item.name}</Text>
         <Text style={styles.studentDetails}>ID: {item.student_id}</Text>
         <Text style={styles.studentDetails}>Class: {item.class}</Text>
+        <Text style={styles.tapHint}>Tap for full details</Text>
       </View>
+      <TouchableOpacity 
+        style={styles.deleteButtonCard}
+        onPress={() => {
+          Alert.alert(
+            'Delete Student',
+            `Are you sure you want to delete ${item.name}?`,
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { 
+                text: 'Delete', 
+                onPress: async () => {
+                  try {
+                    const { error } = await supabase
+                      .from('students')
+                      .delete()
+                      .eq('id', item.id);
+                    
+                    if (error) {
+                      Alert.alert('Error', error.message);
+                    } else {
+                      Alert.alert('Success', 'Student deleted successfully');
+                      fetchStudents();
+                    }
+                  } catch (error) {
+                    Alert.alert('Error', 'Failed to delete student');
+                  }
+                },
+                style: 'destructive'
+              }
+            ]
+          );
+        }}
+      >
+        <Text style={styles.deleteButtonCardText}>🗑️</Text>
+      </TouchableOpacity>
     </TouchableOpacity>
+  );
+
+  const renderStudentDetails = () => (
+    <ScrollView style={styles.studentDetailsView}>
+      <View style={styles.detailsHeader}>
+        <TouchableOpacity onPress={() => setShowStudentDetails(false)}>
+          <Text style={styles.backToStudents}>← Back to Students</Text>
+        </TouchableOpacity>
+        <Text style={styles.studentDetailsTitle}>Student Details</Text>
+      </View>
+
+      <View style={styles.detailsCard}>
+        <Text style={styles.sectionTitle}>👤 Student Information</Text>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Name:</Text>
+          <Text style={styles.detailValue}>{selectedStudent.name}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Student ID:</Text>
+          <Text style={styles.detailValue}>{selectedStudent.student_id}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Age:</Text>
+          <Text style={styles.detailValue}>{selectedStudent.age}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Date of Birth:</Text>
+          <Text style={styles.detailValue}>{selectedStudent.dob || 'Not provided'}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Gender:</Text>
+          <Text style={styles.detailValue}>{selectedStudent.gender || 'Not specified'}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Class:</Text>
+          <Text style={styles.detailValue}>{selectedStudent.class}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Email:</Text>
+          <Text style={styles.detailValue}>{selectedStudent.email}</Text>
+        </View>
+      </View>
+
+      <View style={styles.detailsCard}>
+        <Text style={styles.sectionTitle}>👩 Mother's Information</Text>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Name:</Text>
+          <Text style={styles.detailValue}>{selectedStudent.mother_name || 'Not provided'}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Contact:</Text>
+          <Text style={styles.detailValue}>{selectedStudent.mother_contact || 'Not provided'}</Text>
+        </View>
+      </View>
+
+      <View style={styles.detailsCard}>
+        <Text style={styles.sectionTitle}>👨 Father's Information</Text>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Name:</Text>
+          <Text style={styles.detailValue}>{selectedStudent.father_name || 'Not provided'}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Contact:</Text>
+          <Text style={styles.detailValue}>{selectedStudent.father_contact || 'Not provided'}</Text>
+        </View>
+      </View>
+    </ScrollView>
   );
 
   return (
@@ -223,15 +330,19 @@ export default function StudentsPage({ onBack }) {
         onChangeText={setSearchText}
       />
 
-      <FlatList
-        data={students.filter(student => 
-          student.name.toLowerCase().includes(searchText.toLowerCase())
-        )}
-        renderItem={renderStudent}
-        keyExtractor={(item) => item.id}
-        style={styles.studentsList}
-        showsVerticalScrollIndicator={false}
-      />
+      {showStudentDetails && selectedStudent ? (
+        renderStudentDetails()
+      ) : (
+        <FlatList
+          data={students.filter(student => 
+            student.name.toLowerCase().includes(searchText.toLowerCase())
+          )}
+          renderItem={renderStudent}
+          keyExtractor={(item) => item.id}
+          style={styles.studentsList}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       <TouchableOpacity style={styles.addButton} onPress={handleAddStudent}>
         <Text style={styles.addButtonText}>+</Text>
@@ -275,12 +386,30 @@ export default function StudentsPage({ onBack }) {
                 onChangeText={(text) => setStudentData({...studentData, age: text.replace(/[^0-9]/g, '')})}
               />
               
-              <TextInput
-                style={styles.input}
-                placeholder="Date of Birth"
-                value={studentData.dob}
-                onChangeText={(text) => setStudentData({...studentData, dob: text})}
-              />
+              <TouchableOpacity 
+                style={styles.datePickerButton}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text style={styles.datePickerText}>
+                  {studentData.dob || 'Select Date of Birth'}
+                </Text>
+              </TouchableOpacity>
+              
+              {showDatePicker && (
+                <DateTimePicker
+                  value={selectedDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, date) => {
+                    setShowDatePicker(Platform.OS === 'ios');
+                    if (date) {
+                      setSelectedDate(date);
+                      const formattedDate = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+                      setStudentData({...studentData, dob: formattedDate});
+                    }
+                  }}
+                />
+              )}
               
               <TextInput
                 style={styles.input}
@@ -773,5 +902,90 @@ const styles = StyleSheet.create({
   selectedClassText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  datePickerButton: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingVertical: 15,
+    paddingHorizontal: 16,
+    marginBottom: 15,
+    justifyContent: 'center',
+    minHeight: 50,
+  },
+  datePickerText: {
+    fontSize: 16,
+    color: '#333',
+    textAlign: 'left',
+  },
+  tapHint: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  studentDetailsView: {
+    flex: 1,
+  },
+  detailsHeader: {
+    marginBottom: 20,
+  },
+  backToStudents: {
+    fontSize: 16,
+    color: '#4a90e2',
+    marginBottom: 10,
+  },
+  studentDetailsTitle: {
+    fontSize: isVerySmallScreen() ? 18 : 20,
+    fontWeight: '600',
+    color: '#333',
+  },
+  detailsCard: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+    alignItems: 'flex-start',
+  },
+  detailLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    width: 100,
+    marginRight: 10,
+  },
+  detailValue: {
+    fontSize: 14,
+    color: '#333',
+    flex: 1,
+  },
+  deleteButtonCard: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 30,
+    height: 30,
+    backgroundColor: '#ff4757',
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteButtonCardText: {
+    fontSize: 16,
   },
 });

@@ -33,6 +33,13 @@ export default function AssignmentsPage({ onBack, userRole, teacherData, student
       const { data, error } = await query.order('due_date', { ascending: true });
       
       if (error) {
+        // Handle missing assignments table error
+        if (error.code === 'PGRST205') {
+          console.log('Assignments table not found - no assignments available yet');
+          setAssignments([]);
+          setLoading(false);
+          return;
+        }
         console.error('Error fetching assignments:', error);
         return;
       }
@@ -79,7 +86,11 @@ export default function AssignmentsPage({ onBack, userRole, teacherData, student
         }]);
       
       if (error) {
-        Alert.alert('Error', error.message);
+        if (error.code === 'PGRST205') {
+          Alert.alert('Error', 'Assignments table not found. Please contact administrator to set up the assignments system.');
+        } else {
+          Alert.alert('Error', error.message);
+        }
         return;
       }
 
@@ -101,7 +112,11 @@ export default function AssignmentsPage({ onBack, userRole, teacherData, student
         .eq('id', id);
       
       if (error) {
-        Alert.alert('Error', error.message);
+        if (error.code === 'PGRST205') {
+          Alert.alert('Error', 'Assignments table not found. Please contact administrator.');
+        } else {
+          Alert.alert('Error', error.message);
+        }
         return;
       }
 

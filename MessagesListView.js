@@ -27,6 +27,13 @@ export default function MessagesListView({ onBack, userRole, userData }) {
         .order('updated_at', { ascending: false });
       
       if (error) {
+        // Handle missing conversations table error
+        if (error.code === 'PGRST205') {
+          console.log('Conversations table not found - no conversations available yet');
+          setConversations([]);
+          setLoading(false);
+          return;
+        }
         console.error('Error fetching conversations:', error);
         return;
       }
@@ -128,7 +135,11 @@ export default function MessagesListView({ onBack, userRole, userData }) {
         );
       
       if (checkError) {
-        Alert.alert('Error', checkError.message);
+        if (checkError.code === 'PGRST205') {
+          Alert.alert('Error', 'Conversations table not found. Please contact administrator.');
+        } else {
+          Alert.alert('Error', checkError.message);
+        }
         return;
       }
 
@@ -138,23 +149,34 @@ export default function MessagesListView({ onBack, userRole, userData }) {
         // Use existing conversation
         conversationId = existingConversations[0].id;
       } else {
-        // Create new conversation
+        // Create new conversation with consistent participant ordering
+        // Always put teacher as participant1, student as participant2
+        const isUserTeacher = userRole === 'teacher';
+        const teacherId = isUserTeacher ? userData.id : selectedRecipient.id;
+        const teacherName = isUserTeacher ? userData.name : selectedRecipient.name;
+        const studentId = isUserTeacher ? selectedRecipient.id : userData.id;
+        const studentName = isUserTeacher ? selectedRecipient.name : userData.name;
+        
         const { data: newConversation, error: createError } = await supabase
           .from('conversations')
           .insert([{
-            participant1_id: userData.id,
-            participant1_name: userData.name,
-            participant1_role: userRole,
-            participant2_id: selectedRecipient.id,
-            participant2_name: selectedRecipient.name,
-            participant2_role: selectedRecipient.role,
+            participant1_id: teacherId,
+            participant1_name: teacherName,
+            participant1_role: 'teacher',
+            participant2_id: studentId,
+            participant2_name: studentName,
+            participant2_role: 'student',
             created_at: new Date(),
             updated_at: new Date()
           }])
           .select();
         
         if (createError || !newConversation) {
-          Alert.alert('Error', createError?.message || 'Failed to create conversation');
+          if (createError?.code === 'PGRST205') {
+            Alert.alert('Error', 'Conversations table not found. Please contact administrator to set up the messaging system.');
+          } else {
+            Alert.alert('Error', createError?.message || 'Failed to create conversation');
+          }
           return;
         }
         
@@ -193,9 +215,10 @@ export default function MessagesListView({ onBack, userRole, userData }) {
   };
 
   const openConversation = (conversation) => {
-    const isParticipant1 = conversation.participant1_id === userData.id;
-    const recipientId = isParticipant1 ? conversation.participant2_id : conversation.participant1_id;
-    const recipientName = isParticipant1 ? conversation.participant2_name : conversation.participant1_name;
+    // participant1 is always teacher, participant2 is always student
+    const isUserTeacher = userRole === 'teacher';
+    const recipientId = isUserTeacher ? conversation.participant2_id : conversation.participant1_id;
+    const recipientName = isUserTeacher ? conversation.participant2_name : conversation.participant1_name;
     
     setCurrentConversation({
       id: conversation.id,
@@ -223,9 +246,20 @@ export default function MessagesListView({ onBack, userRole, userData }) {
   }
 
   const renderConversationItem = ({ item }) => {
-    const isParticipant1 = item.participant1_id === userData.id;
-    const recipientName = isParticipant1 ? item.participant2_name : item.participant1_name;
-    const recipientRole = isParticipant1 ? item.participant2_role : item.participant1_role;
+    // participant1 is always teacher, participant2 is always student
+    const isUserTeacher = userRole === 'teacher';
+    const recipientName = isUserTeacher ? item.participant2_name : item.participant1_name;
+    const recipientRole = isUserTeacher ? item.participant2_role : item.participant1_role;
+    
+    if (item.lastMessage) {
+      console.log('Message list debug:', {
+        lastMessageSenderId: item.lastMessage.sender_id,
+        currentUserId: userData.id,
+        isMatch: item.lastMessage.sender_id === userData.id,
+        senderName: item.lastMessage.sender_name,
+        currentUserName: userData.name
+      });
+    }
     
     return (
       <TouchableOpacity 
@@ -240,7 +274,7 @@ export default function MessagesListView({ onBack, userRole, userData }) {
         {item.lastMessage && (
           <View style={styles.lastMessageContainer}>
             <Text style={styles.lastMessageText} numberOfLines={1}>
-              {item.lastMessage.sender_id === userData.id ? 'You: ' : ''}
+              {item.lastMessage.sender_id === userData.id && item.lastMessage.sender_name === userData.name ? 'You: ' : `${item.lastMessage.sender_name}: `}
               {item.lastMessage.message}
             </Text>
             <Text style={styles.lastMessageTime}>

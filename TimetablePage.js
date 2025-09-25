@@ -30,6 +30,23 @@ export default function TimetablePage({ onBack, userRole, classId }) {
         .order('day', { ascending: true });
       
       if (error) {
+        if (error.code === 'PGRST205') {
+          console.log('Timetable table not found - showing empty timetable');
+          // Create empty timetable structure
+          const emptyTimetable = days.map(day => ({
+            day,
+            periods: periods.map(period => ({
+              period,
+              subject: '',
+              teacher: '',
+              time_frame: '',
+              id: null
+            }))
+          }));
+          setTimetable(emptyTimetable);
+          setLoading(false);
+          return;
+        }
         console.error('Error fetching timetable:', error);
         return;
       }

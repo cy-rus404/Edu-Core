@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, Modal, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, Modal, TextInput } from 'react-native';
 import { supabase } from './supabase';
 
 export default function GradesPage({ onBack, teacherClass, teacherSubject }) {
@@ -9,6 +9,7 @@ export default function GradesPage({ onBack, teacherClass, teacherSubject }) {
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [showGradingPage, setShowGradingPage] = useState(false);
   const [gradeData, setGradeData] = useState({
     score: '',
     term: 'First Term',
@@ -72,6 +73,12 @@ export default function GradesPage({ onBack, teacherClass, teacherSubject }) {
         .eq('class', teacherClass);
       
       if (error) {
+        // Handle missing grades table error
+        if (error.code === 'PGRST205') {
+          console.log('Grades table not found - this is normal if no grades have been created yet');
+          setStudentGrades({});
+          return;
+        }
         console.error('Error fetching grades:', error);
         return;
       }
@@ -101,8 +108,33 @@ export default function GradesPage({ onBack, teacherClass, teacherSubject }) {
     return 'F';
   };
 
-  const handleAddGrade = (student) => {
+  const handleStudentSelect = (student) => {
     setSelectedStudent(student);
+    setShowGradingPage(true);
+    // Fetch grades for this specific student
+    fetchStudentGrades(student.student_id);
+  };
+
+  const fetchStudentGrades = async (studentId) => {
+    try {
+      const { data, error } = await supabase
+        .from('grades')
+        .select('*')
+        .eq('student_id', studentId)
+        .order('created_at', { ascending: false });
+      
+      if (error && error.code !== 'PGRST205') {
+        console.error('Error fetching student grades:', error);
+        return;
+      }
+      
+      setStudentGrades({ [studentId]: data || [] });
+    } catch (error) {
+      console.error('Error fetching student grades:', error);
+    }
+  };
+
+  const handleAddGrade = () => {
     setGradeData({
       score: '',
       term: 'First Term',
@@ -140,11 +172,15 @@ export default function GradesPage({ onBack, teacherClass, teacherSubject }) {
         ]);
       
       if (error) {
-        Alert.alert('Error', error.message);
+        if (error.code === 'PGRST205') {
+          Alert.alert('Error', 'Grades table not found. Please contact administrator to set up the grades system.');
+        } else {
+          Alert.alert('Error', error.message);
+        }
       } else {
         Alert.alert('Success', 'Grade added successfully');
         setModalVisible(false);
-        fetchAllGrades();
+        fetchStudentGrades(selectedStudent.student_id);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to add grade');
@@ -159,10 +195,14 @@ export default function GradesPage({ onBack, teacherClass, teacherSubject }) {
         .eq('id', gradeId);
       
       if (error) {
-        Alert.alert('Error', error.message);
+        if (error.code === 'PGRST205') {
+          Alert.alert('Error', 'Grades table not found. Please contact administrator.');
+        } else {
+          Alert.alert('Error', error.message);
+        }
       } else {
         Alert.alert('Success', 'Grade deleted successfully');
-        fetchAllGrades();
+        fetchStudentGrades(selectedStudent.student_id);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to delete grade');
@@ -221,21 +261,48 @@ export default function GradesPage({ onBack, teacherClass, teacherSubject }) {
   };
 
   const renderStudent = ({ item }) => {
-    const studentGradesList = studentGrades[item.student_id] || [];
-    const finalGrade = calculateFinalGrade(studentGradesList);
-    
     return (
-      <View style={styles.studentCard}>
+      <TouchableOpacity 
+        style={styles.studentCard}
+        onPress={() => handleStudentSelect(item)}
+      >
         <View style={styles.studentHeader}>
           <View>
             <Text style={styles.studentName}>{item.name}</Text>
             <Text style={styles.studentId}>ID: {item.student_id}</Text>
           </View>
+          <Text style={styles.tapHint}>Tap to grade →</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderGradingPage = () => {
+    const studentGradesList = studentGrades[selectedStudent.student_id] || [];
+    const finalGrade = calculateFinalGrade(studentGradesList);
+    
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setShowGradingPage(false)}>
+            <Text style={styles.backButton}>← Back to Students</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Grade Student</Text>
+        </View>
+        
+        <View style={styles.studentInfoCard}>
+          <Text style={styles.studentName}>{selectedStudent.name}</Text>
+          <Text style={styles.studentId}>ID: {selectedStudent.student_id}</Text>
+          <Text style={styles.classText}>Class: {teacherClass}</Text>
+          <Text style={styles.subjectText}>Subject: {teacherInfo.subject}</Text>
+        </View>
+        
+        <View style={styles.gradeActions}>
           <TouchableOpacity 
             style={styles.addGradeButton}
-            onPress={() => handleAddGrade(item)}
+            onPress={handleAddGrade}
           >
-            <Text style={styles.addGradeText}>Add Grade</Text>
+            <Text style={styles.addGradeText}>Add New Grade</Text>
           </TouchableOpacity>
         </View>
         
@@ -259,19 +326,114 @@ export default function GradesPage({ onBack, teacherClass, teacherSubject }) {
           </View>
         )}
         
-        {studentGradesList.length > 0 ? (
-          <FlatList
-            data={studentGradesList}
-            renderItem={renderGradeItem}
-            keyExtractor={(item, index) => `${item.student_id}-${index}`}
-            scrollEnabled={false}
-          />
-        ) : (
-          <Text style={styles.noGradesText}>No grades recorded</Text>
-        )}
+        <FlatList
+          data={studentGradesList}
+          renderItem={renderGradeItem}
+          keyExtractor={(item, index) => `${item.student_id}-${index}`}
+          style={styles.gradesList}
+          ListEmptyComponent={
+            <Text style={styles.noGradesText}>No grades recorded for this student</Text>
+          }
+        />
       </View>
     );
   };
+
+  if (showGradingPage && selectedStudent) {
+    return (
+      <>
+        {renderGradingPage()}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>
+                Add Grade for {selectedStudent?.name}
+              </Text>
+              
+              <View style={styles.subjectContainer}>
+                <Text style={styles.inputLabel}>Subject:</Text>
+                <Text style={styles.subjectText}>{teacherInfo.subject}</Text>
+              </View>
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Score (0-100)"
+                keyboardType="numeric"
+                value={gradeData.score}
+                onChangeText={(text) => setGradeData({...gradeData, score: text})}
+              />
+              
+              <Text style={styles.inputLabel}>Term:</Text>
+              <View style={styles.termButtons}>
+                {terms.map(term => (
+                  <TouchableOpacity
+                    key={term}
+                    style={[
+                      styles.termButton,
+                      gradeData.term === term && styles.selectedTermButton
+                    ]}
+                    onPress={() => setGradeData({...gradeData, term})}
+                  >
+                    <Text style={[
+                      styles.termButtonText,
+                      gradeData.term === term && styles.selectedTermText
+                    ]}>
+                      {term}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Academic Year (e.g. 2023/2024)"
+                value={gradeData.academicYear}
+                onChangeText={(text) => setGradeData({...gradeData, academicYear: text})}
+              />
+              
+              {gradeData.score ? (
+                <View style={styles.previewContainer}>
+                  <Text style={styles.previewText}>
+                    Grade: <Text style={[
+                      styles.previewGrade,
+                      getGradeFromScore(gradeData.score) === 'A' ? styles.gradeA : 
+                      getGradeFromScore(gradeData.score) === 'B' ? styles.gradeB :
+                      getGradeFromScore(gradeData.score) === 'C' ? styles.gradeC :
+                      getGradeFromScore(gradeData.score) === 'D' ? styles.gradeD :
+                      getGradeFromScore(gradeData.score) === 'E' ? styles.gradeE : styles.gradeF
+                    ]}>
+                      {getGradeFromScore(gradeData.score)}
+                    </Text>
+                  </Text>
+                </View>
+              ) : null}
+              
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.cancelButton]} 
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.saveButton]} 
+                  onPress={saveGrade}
+                >
+                  <Text style={styles.saveButtonText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -279,11 +441,12 @@ export default function GradesPage({ onBack, teacherClass, teacherSubject }) {
         <TouchableOpacity onPress={onBack}>
           <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Grades</Text>
+        <Text style={styles.title}>Select Student to Grade</Text>
       </View>
       
       <View style={styles.classInfo}>
         <Text style={styles.classText}>Class: {teacherClass}</Text>
+        <Text style={styles.subjectText}>Subject: {teacherInfo.subject}</Text>
       </View>
       
       <FlatList
@@ -292,100 +455,8 @@ export default function GradesPage({ onBack, teacherClass, teacherSubject }) {
         keyExtractor={(item) => item.id.toString()}
         style={styles.studentList}
         refreshing={loading}
-        onRefresh={() => {
-          fetchStudents();
-          fetchAllGrades();
-        }}
+        onRefresh={fetchStudents}
       />
-      
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              Add Grade for {selectedStudent?.name}
-            </Text>
-            
-            <View style={styles.subjectContainer}>
-              <Text style={styles.inputLabel}>Subject:</Text>
-              <Text style={styles.subjectText}>{teacherInfo.subject}</Text>
-            </View>
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Score (0-100)"
-              keyboardType="numeric"
-              value={gradeData.score}
-              onChangeText={(text) => setGradeData({...gradeData, score: text})}
-            />
-            
-            <Text style={styles.inputLabel}>Term:</Text>
-            <View style={styles.termButtons}>
-              {terms.map(term => (
-                <TouchableOpacity
-                  key={term}
-                  style={[
-                    styles.termButton,
-                    gradeData.term === term && styles.selectedTermButton
-                  ]}
-                  onPress={() => setGradeData({...gradeData, term})}
-                >
-                  <Text style={[
-                    styles.termButtonText,
-                    gradeData.term === term && styles.selectedTermText
-                  ]}>
-                    {term}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Academic Year (e.g. 2023/2024)"
-              value={gradeData.academicYear}
-              onChangeText={(text) => setGradeData({...gradeData, academicYear: text})}
-            />
-            
-            {gradeData.score ? (
-              <View style={styles.previewContainer}>
-                <Text style={styles.previewText}>
-                  Grade: <Text style={[
-                    styles.previewGrade,
-                    getGradeFromScore(gradeData.score) === 'A' ? styles.gradeA : 
-                    getGradeFromScore(gradeData.score) === 'B' ? styles.gradeB :
-                    getGradeFromScore(gradeData.score) === 'C' ? styles.gradeC :
-                    getGradeFromScore(gradeData.score) === 'D' ? styles.gradeD :
-                    getGradeFromScore(gradeData.score) === 'E' ? styles.gradeE : styles.gradeF
-                  ]}>
-                    {getGradeFromScore(gradeData.score)}
-                  </Text>
-                </Text>
-              </View>
-            ) : null}
-            
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]} 
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.saveButton]} 
-                onPress={saveGrade}
-              >
-                <Text style={styles.saveButtonText}>Save</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -406,7 +477,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#4a90e2',
     marginRight: 20,
-    left:-85
   },
   title: {
     fontSize: 24,
@@ -710,5 +780,22 @@ const styles = StyleSheet.create({
     textAlignVertical: 'center',
     borderRadius: 20,
     overflow: 'hidden',
+  },
+  tapHint: {
+    fontSize: 14,
+    color: '#4a90e2',
+    fontWeight: '500',
+  },
+  studentInfoCard: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 20,
+  },
+  gradeActions: {
+    marginBottom: 20,
+  },
+  gradesList: {
+    flex: 1,
   },
 });

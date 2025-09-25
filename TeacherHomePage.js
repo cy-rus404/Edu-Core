@@ -13,6 +13,7 @@ export default function TeacherHomePage({ username, onLogout }) {
   const [teacherData, setTeacherData] = useState(null);
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [unreadAnnouncements, setUnreadAnnouncements] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   const [showNotification, setShowNotification] = useState(false);
 
@@ -20,6 +21,21 @@ export default function TeacherHomePage({ username, onLogout }) {
     fetchTeacherData();
     checkUnreadAnnouncements();
   }, []);
+  
+  useEffect(() => {
+    if (teacherData) {
+      checkUnreadMessages();
+      
+      // Set up polling for new messages
+      const interval = setInterval(() => {
+        checkUnreadMessages();
+      }, 10000); // Check every 10 seconds
+      
+      return () => {
+        clearInterval(interval);
+      };
+    }
+  }, [teacherData]);
   
   useEffect(() => {
     if (unreadAnnouncements > 0) {
@@ -36,6 +52,40 @@ export default function TeacherHomePage({ username, onLogout }) {
     // We've removed the badge, so this function is no longer needed
     // but we keep it as a placeholder for future functionality
     setUnreadAnnouncements(0);
+  };
+
+  const checkUnreadMessages = async () => {
+    try {
+      if (teacherData) {
+        // Get user's last read timestamp from teachers table
+        const { data: userData, error: userError } = await supabase
+          .from('teachers')
+          .select('last_read_messages')
+          .eq('id', teacherData.id)
+          .single();
+        
+        const lastReadTime = userData?.last_read_messages || '2000-01-01T00:00:00.000Z';
+        
+        // Get messages from others after last read time
+        const { data: messages, error } = await supabase
+          .from('messages')
+          .select('sender_id, sender_name, created_at')
+          .gt('created_at', lastReadTime)
+          .order('created_at', { ascending: false });
+        
+        if (messages) {
+          const otherMessages = messages.filter(msg => 
+            !(msg.sender_id === teacherData.id && msg.sender_name === teacherData.name)
+          );
+          setUnreadMessages(otherMessages.length);
+        } else {
+          setUnreadMessages(0);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking unread messages:', error);
+      setUnreadMessages(0);
+    }
   };
 
   const fetchTeacherData = async () => {
@@ -59,7 +109,15 @@ export default function TeacherHomePage({ username, onLogout }) {
     }
   };
 
-  const handleNavigation = (page) => {
+  const handleNavigation = async (page) => {
+    if (page === 'Messages') {
+      // Mark messages as read by updating timestamp in database
+      await supabase
+        .from('teachers')
+        .update({ last_read_messages: new Date().toISOString() })
+        .eq('id', teacherData.id);
+      setUnreadMessages(0);
+    }
     setCurrentPage(page);
   };
 
@@ -106,7 +164,10 @@ export default function TeacherHomePage({ username, onLogout }) {
 
   if (currentPage === 'Messages') {
     return <MessagesListView 
-      onBack={handleBack}
+      onBack={() => {
+        handleBack();
+        checkUnreadMessages();
+      }}
       userRole="teacher"
       userData={teacherData}
     />;
@@ -170,6 +231,11 @@ export default function TeacherHomePage({ username, onLogout }) {
             onPress={() => handleNavigation('Messages')}
           >
             <Text style={styles.boxText}>Messages</Text>
+            {unreadMessages > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadMessages}</Text>
+              </View>
+            )}
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -259,5 +325,22 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: '#fff',
+  },
+  badge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#ff3b30',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });

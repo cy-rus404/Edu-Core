@@ -92,8 +92,11 @@ export default function AnnouncementsPage({ onBack }) {
             title: announcementData.recipients === 'specific' ? 
               `${announcementData.title} (To: ${teachers.find(t => t.id === announcementData.specificTeacher)?.name || 'Teacher'})` : 
               announcementData.title,
+            content: announcementData.message,
             message: announcementData.message,
+            target_audience: announcementData.recipients === 'specific' ? 'teachers' : announcementData.recipients,
             recipients: announcementData.recipients === 'specific' ? 'teachers' : announcementData.recipients,
+            created_by: 'admin',
             sender: 'admin',
             read_by: []
           }

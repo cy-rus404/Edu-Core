@@ -8,6 +8,7 @@ export default function AnnouncementsView({ onBack, userRole, userId, onUpdateUn
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotification, setShowNotification] = useState(false);
   const [replyModalVisible, setReplyModalVisible] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const [replyText, setReplyText] = useState('');
 
@@ -96,6 +97,12 @@ export default function AnnouncementsView({ onBack, userRole, userId, onUpdateUn
     }
   };
 
+  const handleAnnouncementPress = (announcement) => {
+    setSelectedAnnouncement(announcement);
+    setDetailModalVisible(true);
+    markAsRead(announcement);
+  };
+
   const markAsRead = async (announcement) => {
     // If already read, do nothing
     if (announcement.read_by && announcement.read_by.includes(userId)) {
@@ -153,7 +160,7 @@ export default function AnnouncementsView({ onBack, userRole, userId, onUpdateUn
     return (
       <TouchableOpacity 
         style={[styles.announcementCard, !isRead && styles.unreadCard]}
-        onPress={() => markAsRead(item)}
+        onPress={() => handleAnnouncementPress(item)}
       >
         <View style={styles.announcementHeader}>
           <Text style={styles.announcementTitle}>{item.title}</Text>
@@ -181,7 +188,14 @@ export default function AnnouncementsView({ onBack, userRole, userId, onUpdateUn
           </View>
         </View>
         
-        <Text style={styles.announcementMessage}>{item.message}</Text>
+        <Text style={styles.announcementMessage} numberOfLines={3}>
+          {item.message}
+        </Text>
+        {!isRead && (
+          <View style={styles.newBadge}>
+            <Text style={styles.newBadgeText}>NEW</Text>
+          </View>
+        )}
         
         <View style={styles.announcementFooter}>
           <Text style={styles.dateText}>
@@ -263,6 +277,51 @@ export default function AnnouncementsView({ onBack, userRole, userId, onUpdateUn
               >
                 <Text style={styles.sendButtonText}>Send</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={detailModalVisible}
+        onRequestClose={() => setDetailModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.detailModalContent}>
+            <View style={styles.detailHeader}>
+              <Text style={styles.detailTitle}>
+                {selectedAnnouncement?.title}
+              </Text>
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => setDetailModalVisible(false)}
+              >
+                <Text style={styles.closeButtonText}>×</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.detailMessage}>
+              {selectedAnnouncement?.message}
+            </Text>
+            
+            <View style={styles.detailFooter}>
+              <Text style={styles.detailDate}>
+                {selectedAnnouncement && new Date(selectedAnnouncement.created_at).toLocaleDateString()} {selectedAnnouncement && new Date(selectedAnnouncement.created_at).toLocaleTimeString()}
+              </Text>
+              
+              {userRole === 'teachers' && selectedAnnouncement?.sender === 'admin' && (
+                <TouchableOpacity 
+                  style={styles.detailReplyButton}
+                  onPress={() => {
+                    setDetailModalVisible(false);
+                    setReplyModalVisible(true);
+                  }}
+                >
+                  <Text style={styles.detailReplyButtonText}>Reply</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
@@ -459,5 +518,81 @@ const styles = StyleSheet.create({
   sendButtonText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  newBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: '#ff3b30',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  newBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  detailModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    width: '95%',
+    maxHeight: '85%',
+  },
+  detailHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  detailTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333',
+    flex: 1,
+    marginRight: 10,
+  },
+  closeButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 20,
+    color: '#666',
+    fontWeight: 'bold',
+  },
+  detailMessage: {
+    fontSize: 16,
+    color: '#333',
+    lineHeight: 24,
+    marginBottom: 20,
+  },
+  detailFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    paddingTop: 15,
+  },
+  detailDate: {
+    fontSize: 14,
+    color: '#999',
+  },
+  detailReplyButton: {
+    backgroundColor: '#4a90e2',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  detailReplyButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });

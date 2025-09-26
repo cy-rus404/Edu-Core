@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+
 import { supabase } from './supabase';
 import { getResponsiveWidth, isVerySmallScreen } from './responsive';
 
@@ -13,14 +14,21 @@ export default function StudentFeesView({ onBack, studentData }) {
   const [loading, setLoading] = useState(true);
   const [paymentModal, setPaymentModal] = useState({ visible: false, fee: null });
   const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethodModal, setPaymentMethodModal] = useState(false);
+  const [selectedFee, setSelectedFee] = useState(null);
+
 
   useEffect(() => {
+    console.log('StudentFeesView useEffect - studentData:', studentData);
     if (studentData) {
       fetchFeesData();
+    } else {
+      console.log('StudentFeesView - No student data provided');
     }
   }, [studentData]);
 
   const fetchFeesData = async () => {
+    console.log('fetchFeesData - Starting fetch for student_id:', studentData?.student_id);
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -29,18 +37,22 @@ export default function StudentFeesView({ onBack, studentData }) {
         .eq('student_id', studentData.student_id)
         .order('created_at', { ascending: false });
 
+      console.log('fetchFeesData - Supabase response:', { data, error });
+
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching fees:', error);
       }
 
       const fees = data || [];
+      console.log('fetchFeesData - Processed fees:', fees);
       setFeesData(fees);
 
-      // Calculate summary
-      const totalDue = fees.reduce((sum, fee) => sum + (fee.amount_due || 0), 0);
-      const totalPaid = fees.reduce((sum, fee) => sum + (fee.amount_paid || 0), 0);
+      // Calculate summary with proper number conversion
+      const totalDue = fees.reduce((sum, fee) => sum + (parseFloat(fee.amount_due) || 0), 0);
+      const totalPaid = fees.reduce((sum, fee) => sum + (parseFloat(fee.amount_paid) || 0), 0);
       const balance = totalDue - totalPaid;
 
+      console.log('fetchFeesData - Summary calculated:', { totalDue, totalPaid, balance });
       setSummary({ totalDue, totalPaid, balance });
     } catch (error) {
       console.error('Error fetching fees data:', error);
@@ -54,12 +66,15 @@ export default function StudentFeesView({ onBack, studentData }) {
       case 'paid': return '#4ECDC4';
       case 'partial': return '#FFA726';
       case 'pending': return '#FF6B6B';
+      case 'overdue': return '#FF4444';
       default: return '#666';
     }
   };
 
   const openPaymentModal = (fee) => {
-    const balance = (fee.amount_due || 0) - (fee.amount_paid || 0);
+    console.log('openPaymentModal - Fee data:', fee);
+    const balance = (parseFloat(fee.amount_due) || 0) - (parseFloat(fee.amount_paid) || 0);
+    console.log('openPaymentModal - Calculated balance:', balance);
     setPaymentAmount(balance.toFixed(2));
     setPaymentModal({ visible: true, fee });
   };
@@ -69,45 +84,144 @@ export default function StudentFeesView({ onBack, studentData }) {
     setPaymentAmount('');
   };
 
-  const processPayment = async () => {
+  const processPayment = () => {
+    console.log('processPayment - Starting with amount:', paymentAmount);
+    console.log('processPayment - Current paymentModal.fee:', paymentModal.fee);
+    
     const amount = parseFloat(paymentAmount);
     const fee = paymentModal.fee;
     
+    console.log('processPayment - Parsed amount:', amount);
+    console.log('processPayment - Fee object:', fee);
+    
     if (!amount || amount <= 0) {
+      console.log('processPayment - Invalid amount error');
       Alert.alert('Error', 'Please enter a valid payment amount');
       return;
     }
 
-    const balance = (fee.amount_due || 0) - (fee.amount_paid || 0);
+    const balance = (parseFloat(fee.amount_due) || 0) - (parseFloat(fee.amount_paid) || 0);
+    console.log('processPayment - Calculated balance:', balance);
+    
     if (amount > balance) {
+      console.log('processPayment - Amount exceeds balance error');
       Alert.alert('Error', 'Payment amount cannot exceed the outstanding balance');
       return;
     }
 
-    try {
-      const newAmountPaid = (fee.amount_paid || 0) + amount;
-      const newStatus = newAmountPaid >= fee.amount_due ? 'paid' : 'partial';
+    console.log('processPayment - Setting selectedFee and closing modal');
+    setSelectedFee({ ...fee });
+    closePaymentModal();
+    setTimeout(() => {
+      console.log('processPayment - Opening payment method modal');
+      setPaymentMethodModal(true);
+    }, 100);
+  };
 
-      const { error } = await supabase
-        .from('student_fees')
-        .update({
+  const handlePaymentMethod = async (method) => {
+    console.log('handlePaymentMethod - Method:', method);
+    console.log('handlePaymentMethod - Payment amount:', paymentAmount);
+    console.log('handlePaymentMethod - Selected fee:', selectedFee);
+    
+    const amount = parseFloat(paymentAmount);
+    const fee = selectedFee;
+    
+    console.log('handlePaymentMethod - Parsed amount:', amount);
+    console.log('handlePaymentMethod - Fee object:', fee);
+    
+    setPaymentMethodModal(false);
+    
+    if (!fee || !fee.id) {
+      console.log('handlePaymentMethod - Fee information missing error');
+      Alert.alert('Error', 'Fee information missing');
+      return;
+    }
+    
+    if (!fee.amount_due || parseFloat(fee.amount_due) <= 0) {
+      console.log('handlePaymentMethod - Invalid fee amount');
+      Alert.alert('Error', 'Invalid fee amount');
+      return;
+    }
+    
+    Alert.alert(
+      'Processing Payment',
+      `Processing ${method} payment of GH₵${amount.toFixed(2)}...`,
+      [{ text: 'OK' }]
+    );
+    
+    setTimeout(async () => {
+      try {
+        console.log('handlePaymentMethod - Starting payment processing');
+        const currentAmountPaid = parseFloat(fee.amount_paid) || 0;
+        const amountDue = parseFloat(fee.amount_due) || 0;
+        const newAmountPaid = currentAmountPaid + amount;
+        const newStatus = newAmountPaid >= amountDue ? 'Paid' : 'Partial';
+        const paymentRef = `PAY_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        console.log('handlePaymentMethod - Payment calculation:', {
+          currentAmountPaid,
+          amountDue,
+          paymentAmount: amount,
+          newAmountPaid,
+          newStatus,
+          paymentRef,
+          feeId: fee.id
+        });
+
+        const updateData = {
           amount_paid: newAmountPaid,
           status: newStatus,
+          payment_date: new Date().toISOString().split('T')[0],
+          payment_reference: paymentRef,
           updated_at: new Date().toISOString()
-        })
-        .eq('id', fee.id);
+        };
+        
+        console.log('handlePaymentMethod - Update data:', updateData);
 
-      if (error) {
-        Alert.alert('Error', 'Payment failed. Please try again.');
-        return;
+        const { data, error } = await supabase
+          .from('student_fees')
+          .update(updateData)
+          .eq('id', fee.id)
+          .select();
+
+        console.log('handlePaymentMethod - Supabase update response:', { data, error });
+
+        if (error) {
+          console.error('handlePaymentMethod - Supabase error:', error);
+          Alert.alert('Error', `Payment failed: ${error.message}`);
+          return;
+        }
+
+        console.log('handlePaymentMethod - Payment successful');
+        
+        // Generate receipt
+        const receipt = {
+          studentName: fee.student_name,
+          studentId: fee.student_id,
+          feeDescription: fee.description,
+          amountPaid: amount,
+          paymentMethod: method,
+          paymentReference: paymentRef,
+          paymentDate: new Date().toLocaleDateString(),
+          paymentTime: new Date().toLocaleTimeString()
+        };
+        
+        Alert.alert(
+          'Payment Successful! 🎉', 
+          `RECEIPT\n\nStudent: ${receipt.studentName}\nID: ${receipt.studentId}\nFee: ${receipt.feeDescription}\nAmount: GH₵${receipt.amountPaid.toFixed(2)}\nMethod: ${receipt.paymentMethod}\nDate: ${receipt.paymentDate}\nTime: ${receipt.paymentTime}\nReference: ${receipt.paymentReference}\n\nThank you for your payment!`,
+          [{ text: 'OK' }]
+        );
+        
+        setSelectedFee(null);
+        setPaymentAmount('');
+        // Force refresh the data
+        await fetchFeesData();
+        console.log('handlePaymentMethod - Data refreshed after payment');
+      } catch (error) {
+        console.error('handlePaymentMethod - Catch error:', error);
+        Alert.alert('Error', `Payment failed: ${error.message}`);
       }
-
-      Alert.alert('Success', `Payment of GH₵${amount.toFixed(2)} processed successfully!`);
-      closePaymentModal();
-      fetchFeesData(); // Refresh data
-    } catch (error) {
-      Alert.alert('Error', 'Payment failed. Please try again.');
-    }
+    }, 2000);
   };
 
   const renderFeeItem = (fee) => (
@@ -122,20 +236,20 @@ export default function StudentFeesView({ onBack, studentData }) {
       <View style={styles.feeDetails}>
         <View style={styles.amountRow}>
           <Text style={styles.amountLabel}>Amount Due:</Text>
-          <Text style={styles.amountValue}>GH₵{(fee.amount_due || 0).toFixed(2)}</Text>
+          <Text style={styles.amountValue}>GH₵{(parseFloat(fee.amount_due) || 0).toFixed(2)}</Text>
         </View>
         
         <View style={styles.amountRow}>
           <Text style={styles.amountLabel}>Amount Paid:</Text>
           <Text style={[styles.amountValue, { color: '#4ECDC4' }]}>
-            GH₵{(fee.amount_paid || 0).toFixed(2)}
+            GH₵{(parseFloat(fee.amount_paid) || 0).toFixed(2)}
           </Text>
         </View>
         
         <View style={styles.amountRow}>
           <Text style={styles.amountLabel}>Balance:</Text>
           <Text style={[styles.amountValue, { color: '#FF6B6B' }]}>
-            GH₵{((fee.amount_due || 0) - (fee.amount_paid || 0)).toFixed(2)}
+            GH₵{((parseFloat(fee.amount_due) || 0) - (parseFloat(fee.amount_paid) || 0)).toFixed(2)}
           </Text>
         </View>
         
@@ -149,7 +263,7 @@ export default function StudentFeesView({ onBack, studentData }) {
         )}
       </View>
       
-      {((fee.amount_due || 0) - (fee.amount_paid || 0)) > 0 && (
+      {((parseFloat(fee.amount_due) || 0) - (parseFloat(fee.amount_paid) || 0)) > 0 && (
         <TouchableOpacity 
           style={styles.payButton}
           onPress={() => openPaymentModal(fee)}
@@ -214,14 +328,18 @@ export default function StudentFeesView({ onBack, studentData }) {
         onRequestClose={closePaymentModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Make Payment</Text>
+          <KeyboardAvoidingView 
+            style={styles.modalKeyboardView}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Make Payment</Text>
             
             {paymentModal.fee && (
               <View style={styles.paymentInfo}>
                 <Text style={styles.paymentFeeTitle}>{paymentModal.fee.description}</Text>
                 <Text style={styles.paymentBalance}>
-                  Outstanding: GH₵{((paymentModal.fee.amount_due || 0) - (paymentModal.fee.amount_paid || 0)).toFixed(2)}
+                  Outstanding: GH₵{((parseFloat(paymentModal.fee.amount_due) || 0) - (parseFloat(paymentModal.fee.amount_paid) || 0)).toFixed(2)}
                 </Text>
               </View>
             )}
@@ -241,9 +359,51 @@ export default function StudentFeesView({ onBack, studentData }) {
               </TouchableOpacity>
               
               <TouchableOpacity style={styles.confirmButton} onPress={processPayment}>
-                <Text style={styles.confirmButtonText}>Pay Now</Text>
+                <Text style={styles.confirmButtonText}>Continue to Payment</Text>
               </TouchableOpacity>
             </View>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={paymentMethodModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setPaymentMethodModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Payment Method</Text>
+            
+            <TouchableOpacity 
+              style={styles.paymentMethodButton}
+              onPress={() => handlePaymentMethod('Mobile Money')}
+            >
+              <Text style={styles.paymentMethodText}>📱 Mobile Money</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.paymentMethodButton}
+              onPress={() => handlePaymentMethod('Bank Card')}
+            >
+              <Text style={styles.paymentMethodText}>💳 Bank Card</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.paymentMethodButton}
+              onPress={() => handlePaymentMethod('Bank Transfer')}
+            >
+              <Text style={styles.paymentMethodText}>🏦 Bank Transfer</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.cancelButton}
+              onPress={() => setPaymentMethodModal(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -482,5 +642,24 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  modalKeyboardView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  paymentMethodButton: {
+    backgroundColor: '#f0f8ff',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#4ECDC4',
+    alignItems: 'center',
+  },
+  paymentMethodText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
   },
 });

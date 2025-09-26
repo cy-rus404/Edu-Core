@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { supabase } from './supabase';
 import { getResponsiveWidth, isVerySmallScreen } from './responsive';
 
@@ -341,40 +341,44 @@ export default function FeesPage({ onBack }) {
       ) : (
         <View style={styles.studentArrearsView}>
           {showSetFees && (
-            <View style={styles.setFeesCard}>
-              <Text style={styles.setFeesTitle}>Set Fee for {selectedClass}</Text>
-              
-              <TextInput
-                style={styles.input}
-                placeholder="Fee Description (e.g., Tuition Fee)"
-                value={newFee.description}
-                onChangeText={(text) => setNewFee({...newFee, description: text})}
-              />
-              
-              <TextInput
-                style={styles.input}
-                placeholder="Amount (GH₵)"
-                value={newFee.amount}
-                onChangeText={(text) => setNewFee({...newFee, amount: text})}
-                keyboardType="numeric"
-              />
-              
-              <TextInput
-                style={styles.input}
-                placeholder="Due Date (YYYY-MM-DD) - Optional"
-                value={newFee.due_date}
-                onChangeText={(text) => setNewFee({...newFee, due_date: text})}
-              />
-              
-              <View style={styles.feeButtonsRow}>
-                <TouchableOpacity style={styles.addFeeButton} onPress={addFeeTemplate}>
-                  <Text style={styles.addFeeButtonText}>Add Fee</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.cancelButton} onPress={() => setShowSetFees(false)}>
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
+            <KeyboardAvoidingView 
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            >
+              <View style={styles.setFeesCard}>
+                <Text style={styles.setFeesTitle}>Set Fee for {selectedClass}</Text>
+                
+                <TextInput
+                  style={styles.input}
+                  placeholder="Fee Description (e.g., Tuition Fee)"
+                  value={newFee.description}
+                  onChangeText={(text) => setNewFee({...newFee, description: text})}
+                />
+                
+                <TextInput
+                  style={styles.input}
+                  placeholder="Amount (GH₵)"
+                  value={newFee.amount}
+                  onChangeText={(text) => setNewFee({...newFee, amount: text})}
+                  keyboardType="numeric"
+                />
+                
+                <TextInput
+                  style={styles.input}
+                  placeholder="Due Date (YYYY-MM-DD) - Optional"
+                  value={newFee.due_date}
+                  onChangeText={(text) => setNewFee({...newFee, due_date: text})}
+                />
+                
+                <View style={styles.feeButtonsRow}>
+                  <TouchableOpacity style={styles.addFeeButton} onPress={addFeeTemplate}>
+                    <Text style={styles.addFeeButtonText}>Add Fee</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.cancelButton} onPress={() => setShowSetFees(false)}>
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
+            </KeyboardAvoidingView>
           )}
 
           <View style={styles.summaryCard}>

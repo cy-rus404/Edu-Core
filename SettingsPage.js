@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, SafeAreaView, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, SafeAreaView, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { supabase } from './supabase';
 import { getResponsiveWidth, isVerySmallScreen } from './responsive';
 
@@ -147,7 +147,11 @@ export default function SettingsPage({ onBack }) {
         <Text style={styles.title}>Settings</Text>
       </View>
 
-      <ScrollView style={styles.scrollView}>
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView style={styles.scrollView}>
         {/* School Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>🏫 School Information</Text>
@@ -270,7 +274,8 @@ export default function SettingsPage({ onBack }) {
             </View>
           ))}
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

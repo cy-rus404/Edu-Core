@@ -6,6 +6,7 @@ import AnnouncementsView from './AnnouncementsView';
 import MessagesListView from './MessagesListView';
 import StudentAttendanceView from './StudentAttendanceView';
 import StudentGradesView from './StudentGradesView';
+import StudentFeesView from './StudentFeesView';
 import TimetablePage from './TimetablePage';
 import AssignmentsPage from './AssignmentsPage';
 
@@ -15,7 +16,7 @@ export default function StudentHomePage({ username, onLogout }) {
   const [unreadAnnouncements, setUnreadAnnouncements] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnims = useRef([...Array(7)].map(() => new Animated.Value(1))).current;
+  const scaleAnims = useRef([...Array(8)].map(() => new Animated.Value(1))).current;
 
   const [showNotification, setShowNotification] = useState(false);
 
@@ -224,6 +225,10 @@ export default function StudentHomePage({ username, onLogout }) {
     return <AssignmentsPage onBack={handleBack} userRole="student" studentData={studentData} />;
   }
 
+  if (currentPage === 'Fees') {
+    return <StudentFeesView onBack={handleBack} studentData={studentData} />;
+  }
+
   return (
     <SafeAreaView style={styles.container}>
 
@@ -322,8 +327,18 @@ export default function StudentHomePage({ username, onLogout }) {
           
           <Animated.View style={{ transform: [{ scale: scaleAnims[6] }] }}>
             <TouchableOpacity 
+              style={[styles.box, { backgroundColor: '#FFA726' }]} 
+              onPress={() => { animatePress(6); handleNavigation('Fees'); }}
+            >
+              <Text style={styles.emoji}>💰</Text>
+              <Text style={styles.boxText}>My Fees</Text>
+            </TouchableOpacity>
+          </Animated.View>
+          
+          <Animated.View style={{ transform: [{ scale: scaleAnims[7] }] }}>
+            <TouchableOpacity 
               style={[styles.box, styles.logoutBox]} 
-              onPress={() => { animatePress(6); handleLogout(); }}
+              onPress={() => { animatePress(7); handleLogout(); }}
             >
               <Text style={styles.emoji}>👋</Text>
               <Text style={[styles.boxText, styles.logoutText]}>Log Out</Text>

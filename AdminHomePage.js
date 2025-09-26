@@ -7,6 +7,7 @@ import TeachersPage from './TeachersPage';
 import AnnouncementsPage from './AnnouncementsPage';
 import ClassesPage from './ClassesPage';
 import ReportsPage from './ReportsPage';
+import FeesPage from './FeesPage';
 import SettingsPage from './SettingsPage';
 
 export default function AdminHomePage({ onLogout }) {
@@ -53,6 +54,8 @@ export default function AdminHomePage({ onLogout }) {
       setCurrentPage('Announcements');
     } else if (page === 'Reports') {
       setCurrentPage('reports');
+    } else if (page === 'Fees') {
+      setCurrentPage('fees');
     } else if (page === 'Settings') {
       setCurrentPage('settings');
     } else {
@@ -82,6 +85,10 @@ export default function AdminHomePage({ onLogout }) {
 
   if (currentPage === 'reports') {
     return <ReportsPage onBack={handleBack} />;
+  }
+
+  if (currentPage === 'fees') {
+    return <FeesPage onBack={handleBack} />;
   }
 
   if (currentPage === 'settings') {
@@ -116,6 +123,10 @@ export default function AdminHomePage({ onLogout }) {
           
           <TouchableOpacity style={styles.box} onPress={() => handleNavigation('Reports')}>
             <Text style={styles.boxText}>Reports</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.box} onPress={() => handleNavigation('Fees')}>
+            <Text style={styles.boxText}>Fees</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.box} onPress={() => handleNavigation('Settings')}>

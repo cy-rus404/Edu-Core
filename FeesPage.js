@@ -13,6 +13,8 @@ export default function FeesPage({ onBack }) {
   const [showSetFees, setShowSetFees] = useState(false);
   const [newFee, setNewFee] = useState({ description: '', amount: '', due_date: '' });
   const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const classes = [
     'Creche', 'Nursery', 'KG1', 'KG2', 'Class 1', 'Class 2', 'Class 3', 
@@ -22,7 +24,37 @@ export default function FeesPage({ onBack }) {
   useEffect(() => {
     fetchClassArrears();
     fetchFeeTemplates();
+    fetchNotifications();
   }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('recipient_type', 'admin')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      if (error) throw error;
+      setNotifications(data || []);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
+  const markNotificationAsRead = async (id) => {
+    try {
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', id);
+      
+      fetchNotifications();
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
 
   const fetchClassArrears = async () => {
     setLoading(true);
@@ -263,6 +295,16 @@ export default function FeesPage({ onBack }) {
         <Text style={styles.title}>
           {selectedStudent ? `${selectedStudent.name} - Fee Details` : selectedClass ? `${selectedClass} - Fees` : 'Fees Management'}
         </Text>
+        {!selectedClass && !selectedStudent && (
+          <TouchableOpacity 
+            style={styles.notificationButton}
+            onPress={() => setShowNotifications(!showNotifications)}
+          >
+            <Text style={styles.notificationButtonText}>
+              🔔 {notifications.filter(n => !n.is_read).length}
+            </Text>
+          </TouchableOpacity>
+        )}
         {selectedClass && !selectedStudent && (
           <TouchableOpacity 
             style={styles.setFeesButton}
@@ -327,17 +369,47 @@ export default function FeesPage({ onBack }) {
           />
         </View>
       ) : !selectedClass ? (
-        <FlatList
-          data={classData}
-          renderItem={renderClassItem}
-          keyExtractor={(item) => item.className}
-          contentContainerStyle={styles.listContent}
-          refreshing={loading}
-          onRefresh={fetchClassArrears}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No students with arrears found</Text>
-          }
-        />
+        <View style={styles.mainView}>
+          {showNotifications && (
+            <View style={styles.notificationsPanel}>
+              <Text style={styles.notificationsTitle}>Recent Payment Notifications</Text>
+              <FlatList
+                data={notifications}
+                renderItem={({ item }) => (
+                  <TouchableOpacity 
+                    style={[styles.notificationCard, !item.is_read && styles.unreadNotification]}
+                    onPress={() => markNotificationAsRead(item.id)}
+                  >
+                    <Text style={styles.notificationTitle}>{item.title}</Text>
+                    <Text style={styles.notificationMessage}>{item.message}</Text>
+                    <Text style={styles.notificationTime}>
+                      {new Date(item.created_at).toLocaleString()}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                keyExtractor={(item) => item.id.toString()}
+                scrollEnabled={false}
+                ListEmptyComponent={
+                  <Text style={styles.emptyText}>No notifications</Text>
+                }
+              />
+            </View>
+          )}
+          <FlatList
+            data={classData}
+            renderItem={renderClassItem}
+            keyExtractor={(item) => item.className}
+            contentContainerStyle={styles.listContent}
+            refreshing={loading}
+            onRefresh={() => {
+              fetchClassArrears();
+              fetchNotifications();
+            }}
+            ListEmptyComponent={
+              <Text style={styles.emptyText}>No students with arrears found</Text>
+            }
+          />
+        </View>
       ) : (
         <View style={styles.studentArrearsView}>
           {showSetFees && (
@@ -755,6 +827,61 @@ const styles = StyleSheet.create({
   dueDateText: {
     fontSize: 14,
     color: '#666',
+  },
+  mainView: {
+    flex: 1,
+  },
+  notificationButton: {
+    backgroundColor: '#FF6B6B',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginRight: 10,
+  },
+  notificationButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  notificationsPanel: {
+    backgroundColor: '#f0f8ff',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
+    maxHeight: 300,
+  },
+  notificationsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
+  notificationCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4ECDC4',
+  },
+  unreadNotification: {
+    borderLeftColor: '#FF6B6B',
+    backgroundColor: '#fff5f5',
+  },
+  notificationTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  notificationMessage: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 4,
+  },
+  notificationTime: {
+    fontSize: 11,
+    color: '#999',
   },
 });
 

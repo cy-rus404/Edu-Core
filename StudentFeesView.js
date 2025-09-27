@@ -168,11 +168,12 @@ export default function StudentFeesView({ onBack, studentData }) {
           feeId: fee.id
         });
 
+        // Ensure no null values
         const updateData = {
-          amount_paid: newAmountPaid,
-          status: newStatus,
+          amount_paid: Math.max(0, Number(newAmountPaid) || 0),
+          status: newStatus || 'Pending',
           payment_date: new Date().toISOString().split('T')[0],
-          payment_reference: paymentRef,
+          payment_reference: paymentRef || '',
           updated_at: new Date().toISOString()
         };
         
@@ -193,6 +194,26 @@ export default function StudentFeesView({ onBack, studentData }) {
         }
 
         console.log('handlePaymentMethod - Payment successful');
+        
+        // Create notification for admin
+        try {
+          await supabase.from('notifications').insert({
+            type: 'payment',
+            title: 'Fee Payment Received',
+            message: `${fee.student_name} (${fee.student_id}) paid GH₵${amount.toFixed(2)} for ${fee.description}`,
+            recipient_type: 'admin',
+            data: {
+              student_id: fee.student_id,
+              student_name: fee.student_name,
+              fee_description: fee.description,
+              amount_paid: amount,
+              payment_method: method,
+              payment_reference: paymentRef
+            }
+          });
+        } catch (notifError) {
+          console.error('Failed to create notification:', notifError);
+        }
         
         // Generate receipt
         const receipt = {

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, Modal, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, Modal, ScrollView, Platform } from 'react-native';
 import { supabase } from './supabase';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { normalize, getPlatformPadding } from './responsive';
 
 export default function AttendancePage({ onBack, teacherClass }) {
   const [students, setStudents] = useState([]);
@@ -280,6 +281,17 @@ export default function AttendancePage({ onBack, teacherClass }) {
     Alert.alert('Success', 'Attendance saved successfully');
   };
 
+  const handleResetClassAttendance = () => {
+    Alert.alert(
+      'Reset Class Attendance',
+      'Are you sure you want to reset attendance for the entire class?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Reset', onPress: () => resetAttendance(), style: 'destructive' }
+      ]
+    );
+  };
+
   const renderStudent = ({ item }) => {
     const status = attendance[item.student_id] || 'unmarked';
     const tempStatus = selectedStatus[item.student_id] || status;
@@ -514,22 +526,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: 60,
-    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'android' ? normalize(40) : normalize(60),
+    paddingHorizontal: getPlatformPadding(),
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: normalize(20),
   },
   backButton: {
-    fontSize: 18,
+    fontSize: normalize(18),
     color: '#4a90e2',
-    marginRight: 20,
-    left:-20,
+    marginRight: normalize(20),
   },
   title: {
-    fontSize: 24,
+    fontSize: normalize(24),
     fontWeight: '600',
     color: '#333',
   },

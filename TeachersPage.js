@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, ScrollView, Alert, Image, FlatList, SafeAreaView, Platform, KeyboardAvoidingView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { supabase } from './supabase';
+import { supabase, validateInput, handleError } from './supabase';
 import { getResponsiveWidth, isVerySmallScreen } from './responsive';
 
 export default function TeachersPage({ onBack }) {
@@ -49,10 +49,13 @@ export default function TeachersPage({ onBack }) {
         return;
       }
       
-      // Create auth user
+      // Create auth user with secure defaults
+      const defaultEmail = `teacher_${Date.now()}@school.edu`;
+      const defaultPassword = Math.random().toString(36).slice(-12);
+      
       const { error: authError } = await supabase.auth.signUp({
-        email: 't@mail.com',
-        password: '123456',
+        email: defaultEmail,
+        password: defaultPassword,
         options: {
           data: {
             role: 'teacher'
@@ -73,7 +76,7 @@ export default function TeachersPage({ onBack }) {
             name: 'Default Teacher',
             age: 30,
             subject: 'General',
-            email: 't@mail.com',
+            email: defaultEmail,
             gender: 'male',
             assigned_class: 'Creche',
             teacher_id: '2001',
@@ -136,8 +139,25 @@ export default function TeachersPage({ onBack }) {
 
   const handleSaveTeacher = async () => {
     try {
+      // Validate inputs
+      if (!validateInput(teacherData.name)) {
+        Alert.alert('Error', 'Please enter a valid name');
+        return;
+      }
+      if (!validateInput(teacherData.email, 'email')) {
+        Alert.alert('Error', 'Please enter a valid email');
+        return;
+      }
+      if (!validateInput(teacherData.password, 'password')) {
+        Alert.alert('Error', 'Password must be at least 6 characters');
+        return;
+      }
+      if (!validateInput(teacherData.age, 'number')) {
+        Alert.alert('Error', 'Please enter a valid age');
+        return;
+      }
+      
       console.log('Starting teacher creation process...');
-      console.log('Teacher data:', teacherData);
       
       // Check if email already exists
       const { data: existingTeacher, error: checkError } = await supabase
@@ -168,7 +188,7 @@ export default function TeachersPage({ onBack }) {
       
       if (authError) {
         console.error('Auth error:', authError);
-        Alert.alert('Error', authError.message);
+        Alert.alert('Error', handleError(authError, 'Failed to create teacher account'));
         return;
       }
       
@@ -194,7 +214,7 @@ export default function TeachersPage({ onBack }) {
       
       if (error) {
         console.error('Database insert error:', error);
-        Alert.alert('Error', error.message);
+        Alert.alert('Error', handleError(error, 'Failed to save teacher data'));
       } else {
         console.log('Teacher inserted successfully:', data);
         Alert.alert('Success', 'Teacher added successfully!');
@@ -214,7 +234,7 @@ export default function TeachersPage({ onBack }) {
       }
     } catch (error) {
       console.error('Unexpected error in handleSaveTeacher:', error);
-      Alert.alert('Error', 'Failed to add teacher: ' + error.message);
+      Alert.alert('Error', handleError(error, 'Failed to add teacher'));
     }
   };
 

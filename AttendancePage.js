@@ -416,16 +416,7 @@ export default function AttendancePage({ onBack, teacherClass }) {
           
           <TouchableOpacity 
             style={styles.resetClassButton}
-            onPress={() => {
-              Alert.alert(
-                'Reset Class Attendance',
-                'Are you sure you want to reset attendance for the entire class?',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Reset', onPress: () => resetAttendance(), style: 'destructive' }
-                ]
-              );
-            }}
+            onPress={handleResetClassAttendance}
           >
             <Text style={styles.resetClassText}>Reset All</Text>
           </TouchableOpacity>
